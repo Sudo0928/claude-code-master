@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 메타 프롬프트 — 학습을 위한 사용법</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --bg:#0B0B0D;
+  --panel:#161619;
+  --panel2:#1D1D22;
+  --line:#2A2A2F;
+  --line-soft:#1E1E23;
+  --orange:#FF5B1F;
+  --orange-hi:#FF8A57;
+  --orange-soft:rgba(255,91,31,.12);
+  --orange-bd:rgba(255,91,31,.38);
+  --txt:#F3F2EF;
+  --muted:#A2A2AB;
+  --dim:#77777F;
+  --cream:#F6F1E7;
+  --blue:#3D6FE0;
+  --green:#22A96B;
+  --purple:#8B5CF6;
+  --amber:#E8930C;
+  --red:#E14B3C;
+  --mono:'JetBrains Mono','SF Mono','Cascadia Code','D2Coding',Consolas,ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:#050506;
+  font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+  color:var(--txt);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+.deck{position:fixed;inset:0}
+.stage{
+  position:absolute;left:50%;top:50%;
+  width:1280px;height:720px;
+  transform:translate(-50%,-50%) scale(1);
+  transform-origin:center center;
+  background:var(--bg);
+  border-radius:6px;
+  overflow:hidden;
+  box-shadow:0 30px 90px rgba(0,0,0,.6);
+}
+
+/* ---------- slide frame ---------- */
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  opacity:0;visibility:hidden;
+  transform:translateY(16px);
+  transition:opacity .38s ease,transform .38s ease,visibility .38s;
+  pointer-events:none;
+}
+.slide.active{opacity:1;visibility:visible;transform:translateY(0);pointer-events:auto}
+
+.bar{
+  height:56px;flex:none;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 44px;
+  border-bottom:1px solid var(--line-soft);
+  background:rgba(11,11,13,.9);
+  z-index:5;
+}
+.brand{display:flex;align-items:center;gap:11px;font-size:14.5px}
+.brand .logo{width:19px;height:19px;flex:none;display:block}
+.brand b{font-weight:800;letter-spacing:-.2px}
+.brand i{font-style:normal;color:#3A3A40}
+.brand span{color:var(--muted);font-weight:500}
+.tag{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+
+.pagenum{
+  position:absolute;top:74px;right:48px;
+  font-size:14px;font-weight:700;color:#5C5C64;letter-spacing:.12em;
+  font-family:var(--mono);
+}
+.body{flex:1;min-height:0;padding:30px 64px 0;display:flex;flex-direction:column}
+.eyebrow{
+  color:var(--orange);font-size:15px;font-weight:800;letter-spacing:.14em;
+  margin-bottom:14px;
+}
+h1{font-size:41px;line-height:1.24;font-weight:800;letter-spacing:-.6px;margin-bottom:24px}
+h1 em{font-style:normal;color:var(--orange)}
+.lead{font-size:16.5px;color:var(--muted);line-height:1.62;margin:-8px 0 22px;max-width:980px}
+.lead b{color:#D8D8DC;font-weight:700}
+
+.takeaway{
+  flex:none;margin:auto 64px 32px;
+  background:var(--orange-soft);
+  border:1px solid var(--orange-bd);
+  border-radius:10px;
+  padding:13px 20px;text-align:center;
+  font-size:17px;font-weight:800;color:var(--orange);
+  letter-spacing:-.2px;
+}
+.takeaway b{color:var(--orange-hi)}
+
+/* ---------- numbered cards ---------- */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:13px;padding:16px 22px;
+  display:flex;gap:17px;align-items:flex-start;
+}
+.chip{
+  width:31px;height:31px;border-radius:8px;flex:none;margin-top:2px;
+  display:grid;place-items:center;
+  font-weight:800;font-size:15px;color:#fff;font-family:var(--mono);
+}
+.chip.b{background:var(--blue)} .chip.g{background:var(--green)}
+.chip.p{background:var(--purple)} .chip.a{background:var(--amber)}
+.chip.r{background:var(--red)} .chip.o{background:var(--orange)}
+.card h3{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.card h3 code{font-family:var(--mono);font-size:16px;color:var(--orange-hi);font-weight:700}
+.card p{font-size:14.5px;color:var(--muted);margin-top:5px;line-height:1.55}
+.card p code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+/* ---------- before/after vs ---------- */
+.vs{display:grid;grid-template-columns:1fr 52px 1fr;align-items:stretch}
+.vsbox{border-radius:15px;padding:24px 28px}
+.vsbox.was{background:#211311;border:1px solid #3C221B}
+.vsbox.now{background:#0E1727;border:1px solid #2B4A88}
+.vsbox .k{font-size:13.5px;font-weight:800;letter-spacing:.06em;margin-bottom:10px}
+.vsbox.was .k{color:#E0876A}
+.vsbox.now .k{color:#6FA1FF}
+.vsbox .t{font-size:22px;font-weight:800;letter-spacing:-.4px;line-height:1.35}
+.vsbox .d{font-size:14.5px;color:var(--muted);margin-top:9px;line-height:1.55}
+.vsarr{display:grid;place-items:center;color:#E4E4E8;font-size:26px}
+
+/* ---------- terminal / editor mockup ---------- */
+.term{background:#0D0D10;border:1px solid #26262C;border-radius:13px;overflow:hidden}
+.term .tb{
+  height:38px;display:flex;align-items:center;gap:8px;padding:0 15px;
+  background:#141418;border-bottom:1px solid #212127;
+}
+.dot{width:11px;height:11px;border-radius:50%}
+.dot.r{background:#FF5F57}.dot.y{background:#FEBC2E}.dot.g{background:#28C840}
+.term .tt{font-size:12.5px;color:#84848C;margin-left:7px;font-weight:600}
+.term pre{
+  margin:0;padding:18px 24px;
+  font-family:var(--mono);font-size:13.5px;line-height:1.8;
+  color:#D9D9DF;white-space:pre-wrap;word-break:break-all;
+}
+.term pre .p{color:var(--orange);font-weight:700}
+.term pre .k{color:#FF9264}
+.term pre .s{color:#8CD49A}
+.term pre .c{color:#67676F}
+.term pre .dm{color:#8A8A93}
+.term pre .ok{color:#3ACB82}
+.term pre .hl{color:#FFD9C4}
+
+/* light mac window (slack풍) */
+.win{background:#FFFFFF;border-radius:13px;overflow:hidden;color:#1C1C1E;box-shadow:0 14px 44px rgba(0,0,0,.45)}
+.win .tb{height:38px;display:flex;align-items:center;gap:8px;padding:0 15px;background:#F1EFEC;border-bottom:1px solid #E2DFDA}
+.win .tt{font-size:12.5px;color:#6E6A64;margin-left:7px;font-weight:600}
+
+/* ---------- table ---------- */
+.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.tbl th{
+  text-align:left;color:#87878F;font-weight:700;font-size:12.5px;letter-spacing:.08em;
+  padding:11px 18px;border-bottom:1px solid var(--line);background:#19191D;
+}
+.tbl td{padding:11.5px 18px;border-bottom:1px solid var(--line-soft);vertical-align:top;line-height:1.5}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .mono{font-family:var(--mono);font-size:13px;color:#FFC29E;white-space:nowrap}
+.tbl .mut{color:var(--muted)}
+.pill{display:inline-block;font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:.04em}
+.pill.req{background:rgba(255,91,31,.16);color:#FF8A57}
+.pill.opt{background:#222228;color:#8F8F98}
+
+/* ---------- 3-col grid cards ---------- */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:20px 22px}
+.gcard .gh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.gcard .gh .em{font-size:21px}
+.gcard h3{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.gcard h3 code{font-family:var(--mono);font-size:15.5px;color:var(--orange-hi)}
+.gcard .meta{font-family:var(--mono);font-size:11.5px;color:#8B8B94;background:#101013;border:1px solid #232329;border-radius:7px;padding:6px 10px;margin:9px 0 10px;line-height:1.6}
+.gcard p{font-size:13.8px;color:var(--muted);line-height:1.58}
+.gcard p b{color:#D9D9DE}
+.gcard ul{list-style:none;margin-top:8px}
+.gcard ul li{font-size:13.5px;color:var(--muted);line-height:1.55;padding-left:15px;position:relative;margin-top:5px}
+.gcard ul li::before{content:"·";color:var(--orange);position:absolute;left:2px;font-weight:800}
+
+.note{position:relative;padding-left:22px;font-size:13.5px;color:#8D8D96;line-height:1.55;margin-top:15px}
+.note::before{content:"＊";position:absolute;left:0;top:0;color:var(--orange);font-weight:800}
+.note code{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#1E1E23;padding:1px 6px;border-radius:5px}
+.note b{color:#C9C9CF}
+
+/* ---------- cover ---------- */
+.cover-top{flex:1;min-height:0;background:var(--cream);position:relative;display:grid;place-items:center}
+.cover-bot{flex:none;background:#070708;padding:32px 64px 40px;border-top:1px solid #000}
+.badge{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:13px;font-weight:800;letter-spacing:.03em;
+  padding:6px 13px;border-radius:7px;margin-bottom:16px;
+}
+.cover-bot h1{font-size:52px;line-height:1.18;letter-spacing:-1.2px;margin-bottom:14px}
+.cover-bot .sub{font-size:17.5px;color:var(--muted)}
+.cover-bot .sub b{color:#EDEDEF}
+
+/* ---------- flow diagram(dark) ---------- */
+.flowwrap{background:#101013;border:1px solid var(--line);border-radius:15px;padding:10px 8px}
+
+/* ---------- two column layout helper ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.cols-64{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
+
+/* mission time chip */
+.time{margin-left:auto;flex:none;font-family:var(--mono);font-size:12px;font-weight:700;color:#8F8F98;background:#111114;border:1px solid #26262C;padding:5px 11px;border-radius:20px}
+
+/* ---------- outro ---------- */
+.outro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:16px}
+.outro .eb{color:var(--orange);font-size:14.5px;font-weight:800;letter-spacing:.22em;margin-bottom:16px}
+.outro h1{font-size:40px;line-height:1.3;margin-bottom:14px}
+.outro .d{font-size:15.5px;color:var(--muted);line-height:1.65;margin-bottom:26px}
+.avatar{
+  width:118px;height:118px;border-radius:50%;
+  background:#141417;border:3px solid var(--orange);
+  display:grid;place-items:center;font-size:56px;margin-bottom:22px;
+  box-shadow:0 0 0 7px rgba(255,91,31,.09);
+}
+.cta{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:16.5px;font-weight:800;padding:13px 42px;border-radius:32px;
+  letter-spacing:-.2px;margin-bottom:26px;
+}
+.promo{
+  display:flex;align-items:center;gap:16px;text-align:left;
+  background:#121215;border:1px solid var(--line);border-radius:14px;
+  padding:14px 22px;
+}
+.promo .th{
+  width:92px;height:56px;border-radius:9px;flex:none;
+  background:linear-gradient(135deg,#2B1B4E,#0E0E12 60%);
+  border:1px solid #3A2E63;
+  display:grid;place-items:center;color:#C9B8FF;
+  font-family:var(--mono);font-size:9.5px;font-weight:800;text-align:center;line-height:1.5;
+}
+.promo .pt{font-size:16px;font-weight:800}
+.promo .pd{font-size:13px;color:var(--muted);margin-top:3px}
+.promo .hot{color:var(--orange);font-weight:800}
+
+.tbl{table-layout:fixed}
+.grid3>*,.grid2>*,.cols>*,.cols-64>*{min-width:0}
+
+/* ---------- controls ---------- */
+.hud{position:fixed;right:22px;bottom:16px;display:flex;align-items:center;gap:10px;z-index:50;user-select:none}
+.hud .cnt{font-family:var(--mono);font-size:12.5px;color:#6E6E76;letter-spacing:.08em;margin-right:2px}
+.hud button{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid #303036;background:#121215;color:#C9C9CF;
+  font-size:16px;cursor:pointer;transition:.18s;
+}
+.hud button:hover{border-color:var(--orange);color:var(--orange)}
+.hint{position:fixed;left:22px;bottom:21px;font-size:12px;color:#55555C;z-index:50;user-select:none}
+.toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%) translateY(8px);background:#1A1A1E;border:1px solid #3A3A40;color:#EDEDEF;font-size:13px;padding:10px 18px;border-radius:10px;z-index:60;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:80%;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.hint b{color:#7C7C84;font-weight:700}
+.progress{position:fixed;left:0;bottom:0;height:3px;background:var(--orange);width:0%;z-index:60;transition:width .3s ease}
+
+/* ---------- print ---------- */
+@media print{
+  body{overflow:visible;background:#0B0B0D}
+  .hud,.hint,.progress,.toast{display:none!important}
+  .deck{position:static}
+  .stage{position:static;transform:none!important;width:1280px;height:auto;box-shadow:none;border-radius:0;overflow:visible;left:auto;top:auto;margin:0 auto}
+  .slide{position:relative;opacity:1!important;visibility:visible!important;transform:none!important;width:1280px;height:720px;page-break-after:always;break-inside:avoid}
+}
+@page{size:1280px 720px;margin:0}
+.sum{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:17px 24px;display:flex;align-items:center;gap:22px}
+.sum .n{font-family:var(--mono);font-size:15px;font-weight:800;color:#6C6C74;flex:none}
+.sum .k{font-size:21px;font-weight:800;letter-spacing:-.3px;width:96px;flex:none}
+.sum .k em{font-style:normal;color:var(--orange)}
+.sum .d{font-size:15px;color:var(--muted);line-height:1.5}
+.sum .d code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+/* ---------- hooks deck 전용 ---------- */
+.exit{display:flex;gap:14px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 20px;margin-bottom:11px}
+.exit .code{font-family:var(--mono);font-size:15px;font-weight:800;color:#fff;background:#2A2A31;border-radius:8px;padding:5px 11px;flex:none;min-width:74px;text-align:center}
+.exit .code.ok{background:var(--green)} .exit .code.no{background:var(--red)} .exit .code.warn{background:#3A3A42;color:#B6B6BF}
+.exit h3{font-size:17px;font-weight:800;letter-spacing:-.3px}
+.exit p{font-size:13.8px;color:var(--muted);margin-top:4px;line-height:1.55}
+.exit p code,.lead code{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+.kbd{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#1E1E23;border:1px solid #2C2C33;padding:2px 7px;border-radius:6px}
+.tbl.tight th,.tbl.tight td{padding:9px 18px}
+.gcard.warn{border-color:#4A2A24;background:#191211}
+.gcard.warn h3{color:#FF8A57}
+/* ---------- meta-prompt deck 전용 ---------- */
+.pp{background:#0D0D10;border:1px solid #26262C;border-radius:13px;overflow:hidden}
+.pp .ph{display:flex;align-items:center;gap:9px;padding:9px 16px;background:#141418;border-bottom:1px solid #212127}
+.pp .ph .ic{width:16px;height:16px;color:var(--orange);flex:none}
+.pp .ph .t{font-size:12.5px;font-weight:800;color:#C0C0C8;letter-spacing:-.1px}
+.pp .ph .tag2{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:#6E6E76;letter-spacing:.06em}
+.pp pre{margin:0;padding:15px 20px;font-family:var(--mono);font-size:12.8px;line-height:1.82;color:#D9D9DF;white-space:pre-wrap;word-break:keep-all}
+.pp pre .c{color:#67676F}.pp pre .k{color:#FF9264}.pp pre .s{color:#8CD49A}.pp pre .hl{color:#FFD9C4}
+.chk{display:flex;gap:13px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 20px}
+.chk .q{width:26px;height:26px;border-radius:7px;flex:none;border:2px solid #3A3A42;margin-top:1px}
+.chk h3{font-size:16.5px;font-weight:800;letter-spacing:-.3px}
+.chk p{font-size:13.5px;color:var(--muted);margin-top:4px;line-height:1.55}
+.chk p b{color:#D9D9DE}
+.step{display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 20px}
+.step .n{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--orange);flex:none}
+.step .t{font-size:15.5px;font-weight:700}
+.step .d{font-size:13.5px;color:var(--muted);margin-left:auto;text-align:right}
+</style>
+</head>
+<body>
+<div class="deck">
+<div class="stage" id="stage">
+<svg style="display:none" aria-hidden="true"><symbol id="spark" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2.7" stroke-linecap="round" fill="none"><path d="M12 2.6v18.8M2.6 12h18.8M5.4 5.4l13.2 13.2M18.6 5.4L5.4 18.6"/></g></symbol></svg>
+
+<!-- ═══════════ 01 · COVER ═══════════ -->
+<section class="slide active">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="cover-top">
+    <div style="width:80%">
+      <svg viewBox="0 0 1000 330" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ca" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#A29A89"/></marker>
+          <marker id="co" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#FF5B1F"/></marker>
+        </defs>
+        <!-- 왼쪽: 산출물 루프 -->
+        <text x="228" y="20" text-anchor="middle" font-size="12" font-weight="700" fill="#948C7A" font-family="inherit">산출물 루프 · 결과만 남는다</text>
+        <rect x="60" y="126" width="112" height="52" rx="12" fill="none" stroke="#B7AF9F" stroke-width="1.7"/>
+        <text x="116" y="157" text-anchor="middle" font-size="14" font-weight="700" fill="#6E6858" font-family="inherit">요청</text>
+        <line x1="174" y1="152" x2="222" y2="152" stroke="#A29A89" stroke-width="1.6" marker-end="url(#ca)"/>
+        <rect x="228" y="126" width="112" height="52" rx="12" fill="none" stroke="#B7AF9F" stroke-width="1.7"/>
+        <text x="284" y="157" text-anchor="middle" font-size="14" font-weight="700" fill="#6E6858" font-family="inherit">Claude</text>
+        <line x1="342" y1="152" x2="390" y2="152" stroke="#A29A89" stroke-width="1.6" marker-end="url(#ca)"/>
+        <rect x="396" y="126" width="112" height="52" rx="12" fill="#E7E0D2" stroke="#B7AF9F" stroke-width="1.7"/>
+        <text x="452" y="157" text-anchor="middle" font-size="14" font-weight="700" fill="#6E6858" font-family="inherit">완성 코드</text>
+        <path d="M452 186 V214 H116 V186" fill="none" stroke="#C3BBA9" stroke-width="1.5" stroke-dasharray="5 5" marker-end="url(#ca)"/>
+        <text x="284" y="234" text-anchor="middle" font-size="11.5" fill="#A49B88" font-family="inherit">다음에도 똑같이 요청한다</text>
+        <circle cx="116" cy="88" r="12" fill="none" stroke="#B7AF9F" stroke-width="1.8"/>
+        <path d="M101 112 a15 10 0 0 1 30 0" fill="none" stroke="#B7AF9F" stroke-width="1.8"/>
+        <text x="116" y="66" text-anchor="middle" font-size="11.5" font-weight="700" fill="#A49B88" font-family="inherit">나 (그대로)</text>
+        <!-- 구분선 -->
+        <line x1="540" y1="34" x2="540" y2="286" stroke="#D6CFC0" stroke-width="1.4" stroke-dasharray="6 6"/>
+        <!-- 오른쪽: 학습 루프 -->
+        <text x="770" y="20" text-anchor="middle" font-size="12" font-weight="700" fill="#8C6A52" font-family="inherit">학습 루프 · 내가 남는다</text>
+        <circle cx="770" cy="160" r="42" fill="#FF5B1F"/>
+        <text x="770" y="156" text-anchor="middle" font-size="14" font-weight="800" fill="#FFFFFF" font-family="inherit">나</text>
+        <text x="770" y="175" text-anchor="middle" font-size="10.5" fill="#FFE0D2" font-family="inherit">이해가 쌓인다</text>
+        <rect x="700" y="44" width="140" height="42" rx="11" fill="#FFFFFF" stroke="#FF5B1F" stroke-width="1.6"/>
+        <text x="770" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#B23F14" font-family="inherit">① 내가 먼저 시도</text>
+        <rect x="866" y="139" width="128" height="42" rx="11" fill="#FFFFFF" stroke="#FF5B1F" stroke-width="1.6"/>
+        <text x="930" y="165" text-anchor="middle" font-size="13" font-weight="700" fill="#B23F14" font-family="inherit">② 피드백·질문</text>
+        <rect x="700" y="234" width="140" height="42" rx="11" fill="#FFFFFF" stroke="#FF5B1F" stroke-width="1.6"/>
+        <text x="770" y="260" text-anchor="middle" font-size="13" font-weight="700" fill="#B23F14" font-family="inherit">③ 내가 고친다</text>
+        <rect x="548" y="139" width="128" height="42" rx="11" fill="#FFFFFF" stroke="#FF5B1F" stroke-width="1.6"/>
+        <text x="612" y="165" text-anchor="middle" font-size="13" font-weight="700" fill="#B23F14" font-family="inherit">④ 내가 설명</text>
+        <path d="M846 74 a108 108 0 0 1 46 58" fill="none" stroke="#FF5B1F" stroke-width="1.7" marker-end="url(#co)"/>
+        <path d="M892 190 a108 108 0 0 1 -46 52" fill="none" stroke="#FF5B1F" stroke-width="1.7" marker-end="url(#co)"/>
+        <path d="M694 248 a108 108 0 0 1 -44 -54" fill="none" stroke="#FF5B1F" stroke-width="1.7" marker-end="url(#co)"/>
+        <path d="M650 128 a108 108 0 0 1 44 -52" fill="none" stroke="#FF5B1F" stroke-width="1.7" marker-end="url(#co)"/>
+        <text x="770" y="308" text-anchor="middle" font-size="11.5" font-weight="700" fill="#8C6A52" font-family="inherit">같은 도구, 다른 프롬프트 — 남는 것이 달라진다</text>
+      </svg>
+    </div>
+  </div>
+  <div class="cover-bot">
+    <span class="badge">• 클로드 코드 완벽 마스터 · 수업 자료</span>
+    <h1>만들게 하지 말고<br><em style="color:var(--orange);font-style:normal">가르치게</em> 하라</h1>
+    <div class="sub">학습을 위한 Claude Code <b>메타 프롬프트</b> &nbsp;·&nbsp; 공식 문서 기반 · 2026.07</div>
+  </div>
+</section>
+
+<!-- ═══════════ 02 · WHY ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">02</div>
+  <div class="body">
+    <div class="eyebrow">문제 인식 · WHY</div>
+    <h1>프로젝트는 끝났는데 <em>나는 그대로다</em></h1>
+    <div class="lead">Claude가 짜준 코드로 기능은 돌아간다. 그런데 <b>같은 문제를 혼자 다시 만나면 또 물어봐야 한다</b>. 산출물은 남았지만 실력이 안 남은 것이다. 도구가 문제가 아니라, <b>무엇을 시켰는지</b>가 문제다.</div>
+    <div class="vs">
+      <div class="vsbox was">
+        <div class="k">기본값 · 산출물을 요청</div>
+        <div class="t">"이거 만들어줘"<br>→ 완성된 코드</div>
+        <div class="d">가장 빠르고 가장 편하다. 대신 생각할 기회가 통째로 사라진다. 승인 버튼을 누르는 동안 <b style="color:#F0B49B">배우는 건 없다</b>.</div>
+      </div>
+      <div class="vsarr">→</div>
+      <div class="vsbox now">
+        <div class="k">메타 프롬프트 · 과정을 설계</div>
+        <div class="t">"나를 가르쳐라"<br>→ 질문 · 과제 · 피드백</div>
+        <div class="d">느리지만 남는다. Claude를 <b style="color:#CFE0FF">생산자가 아니라 코치</b>로 세워두면 같은 도구가 완전히 다르게 작동한다.</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">문제는 도구가 아니라 <b>내가 시킨 역할</b>이다</div>
+</section>
+
+<!-- ═══════════ 03 · 근거 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">03</div>
+  <div class="body">
+    <div class="eyebrow">근거 · EVIDENCE</div>
+    <h1>같은 도구라도 <em>순서가 결과를 바꾼다</em></h1>
+    <div class="cols">
+      <div class="flowwrap" style="padding:16px 18px">
+        <svg viewBox="0 0 520 232" width="100%" xmlns="http://www.w3.org/2000/svg">
+          <text x="10" y="16" font-size="13" font-weight="800" fill="#C9C9CF" font-family="inherit">에세이 작성 중 뇌 연결성 (EEG)</text>
+          <text x="10" y="36" font-size="11" fill="#77777F" font-family="inherit">외부 도움이 클수록 연결성은 낮아졌다</text>
+          <rect x="16" y="60" width="330" height="34" rx="7" fill="#FF5B1F"/>
+          <text x="30" y="82" font-size="12.5" font-weight="700" fill="#FFFFFF" font-family="inherit">도구 없이</text>
+          <text x="334" y="82" text-anchor="end" font-size="11.5" font-weight="700" fill="#FFE0D2" font-family="inherit">가장 강함</text>
+          <rect x="16" y="106" width="222" height="34" rx="7" fill="#8B5CF6"/>
+          <text x="30" y="128" font-size="12.5" font-weight="700" fill="#FFFFFF" font-family="inherit">검색엔진</text>
+          <text x="226" y="128" text-anchor="end" font-size="11.5" font-weight="700" fill="#E2D8FF" font-family="inherit">중간</text>
+          <rect x="16" y="152" width="122" height="34" rx="7" fill="#3A3A42"/>
+          <text x="30" y="174" font-size="12.5" font-weight="700" fill="#D9D9DF" font-family="inherit">LLM</text>
+          <text x="126" y="174" text-anchor="end" font-size="11.5" font-weight="700" fill="#9A9AA3" font-family="inherit">가장 약함</text>
+          <text x="10" y="212" font-size="10.5" fill="#6E6E76" font-family="inherit">Kosmyna et al., MIT Media Lab (2025) · 참가자 54명 · 막대는 개념 도식</text>
+        </svg>
+      </div>
+      <div>
+        <div class="gcard warn" style="padding:15px 19px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">↓</span><h3>LLM 먼저 → 혼자</h3></div>
+          <p style="font-size:13.4px">계속 LLM에 기대던 참가자들은 도구를 뗀 뒤 <b>참여도가 떨어진</b> 상태를 보였고, <b>자기가 쓴 글조차 정확히 인용하지 못했다</b>.</p>
+        </div>
+        <div class="gcard" style="padding:15px 19px;border-color:#2B4A88;background:#0E1727">
+          <div class="gh" style="margin-bottom:7px"><span class="em">↑</span><h3 style="color:#6FA1FF">혼자 먼저 → LLM</h3></div>
+          <p style="font-size:13.4px">먼저 스스로 쓰고 나서 LLM을 쓴 쪽은 <b style="color:#CFE0FF">기억 회상이 더 높았다</b>. 같은 도구인데 <b style="color:#CFE0FF">붙이는 순서</b>가 달랐을 뿐이다.</p>
+        </div>
+      </div>
+    </div>
+    <div class="note">단, 이 연구는 <b>에세이 쓰기</b> 상황이고 코딩이 아니다. 연구진도 일반화에 선을 그었다. 증명이 아니라 <b>방향 신호</b>로 받아들이자 — 그런데 그 방향이 학습 과학이 오래 말해온 것과 정확히 같다.</div>
+  </div>
+  <div class="takeaway">AI를 <b>먼저</b> 부르지 말고 <b>나중에</b> 불러라</div>
+</section>
+
+<!-- ═══════════ 04 · 자가진단 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">04</div>
+  <div class="body">
+    <div class="eyebrow">자가 진단 · CHECK</div>
+    <h1>지금 내 상태를 <em>3초 만에</em> 확인하는 법</h1>
+    <div class="lead">"이해했다"는 느낌은 놀랄 만큼 자주 틀린다. 심리학에서 <b>설명 깊이의 착각</b>이라 부르는 현상 — 설명해보라고 하기 전까지는 안다고 믿는다.</div>
+    <div class="cards" style="gap:11px">
+      <div class="chk"><div class="q"></div><div>
+        <h3>방금 받은 코드를 지금 닫고, 백지에 다시 쓸 수 있나?</h3>
+        <p>못 쓰면 읽은 것이지 배운 게 아니다. <b>읽기는 학습이 아니다</b> — 꺼내봐야 안다.</p>
+      </div></div>
+      <div class="chk"><div class="q"></div><div>
+        <h3>"왜 이 방식인가"에 대안 하나를 대고 답할 수 있나?</h3>
+        <p>동작 설명은 되는데 <b>선택의 이유</b>가 안 나오면, 아직 남의 판단을 빌려 쓰는 중이다.</p>
+      </div></div>
+      <div class="chk"><div class="q"></div><div>
+        <h3>이 코드가 어디서 깨질지 한 군데라도 짚을 수 있나?</h3>
+        <p>깨질 지점을 못 짚으면 리뷰도 디버깅도 못 한다. <b>승인 버튼은 이해의 증거가 아니다</b>.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="takeaway">세 개 중 하나라도 막혔다면 <b>속도를 늦출 신호</b>다</div>
+</section>
+
+<!-- ═══════════ 05 · WHAT ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">05</div>
+  <div class="body">
+    <div class="eyebrow">개념 정의 · WHAT</div>
+    <h1>메타 프롬프트는 <em>한 층 위</em>의 지시다</h1>
+    <div class="lead">일반 프롬프트가 <b>"무엇을 만들지"</b>를 말한다면, 메타 프롬프트는 <b>"우리가 어떻게 일할지"</b>를 정한다. 과제가 아니라 <b>규칙</b>을 주는 것이다.</div>
+    <div class="cards">
+      <div class="card"><div class="chip b">1</div><div>
+        <h3>역할을 지정한다</h3>
+        <p>생산자냐 코치냐. "코드를 대신 쓰지 마라"는 한 줄이 <b style="color:#D9D9DE">이후 모든 응답</b>의 성격을 바꾼다.</p>
+      </div></div>
+      <div class="card"><div class="chip g">2</div><div>
+        <h3>내 수준과 목표를 알려준다</h3>
+        <p>수준을 모르면 난이도를 못 맞춘다. <b style="color:#D9D9DE">"어디까지 아는지 · 어디까지 가고 싶은지"</b>가 좋은 튜터링의 전제다.</p>
+      </div></div>
+      <div class="card"><div class="chip p">3</div><div>
+        <h3>순서와 정지 지점을 못 박는다</h3>
+        <p>"설명 먼저, 구현은 내 승인 후", "핵심 로직은 비워둬라" — <b style="color:#D9D9DE">내가 생각할 자리</b>를 미리 확보한다.</p>
+      </div></div>
+      <div class="card"><div class="chip a">4</div><div>
+        <h3>매번 치지 않고 환경에 심는다</h3>
+        <p>좋은 메타 프롬프트는 타이핑이 아니라 <b style="color:#D9D9DE">설치</b>다 — 출력 스타일 · CLAUDE.md · 서브에이전트 · 훅.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="takeaway">과제를 주지 말고 <b>규칙</b>을 줘라</div>
+</section>
+
+<!-- ═══════════ 06 · 학습 과학 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">06</div>
+  <div class="body">
+    <div class="eyebrow">설계 원리 · LEARNING SCIENCE</div>
+    <h1>검증된 <em>4가지 원리</em>를 프롬프트로 번역하면</h1>
+    <table class="tbl tight">
+      <tr><th style="width:210px">학습 원리</th><th style="width:330px">뜻</th><th>프롬프트로 옮기면</th></tr>
+      <tr><td><b>생성 효과</b><br><span class="mut" style="font-size:12.5px">Generation effect</span></td><td class="mut">읽은 것보다 <b style="color:#D9D9DE">내가 만들어낸 것</b>이 오래 남는다</td><td class="mut">"정답을 주기 전에 <b style="color:#D9D9DE">내 답을 먼저 받아라</b>"</td></tr>
+      <tr><td><b>인출 연습</b><br><span class="mut" style="font-size:12.5px">Retrieval practice</span></td><td class="mut">다시 읽기보다 <b style="color:#D9D9DE">꺼내보기</b>가 기억을 만든다</td><td class="mut">"설명하지 말고 <b style="color:#D9D9DE">나한테 먼저 질문해라</b>"</td></tr>
+      <tr><td><b>바람직한 어려움</b><br><span class="mut" style="font-size:12.5px">Desirable difficulty</span></td><td class="mut">약간의 <b style="color:#D9D9DE">막힘</b>이 학습을 깊게 만든다</td><td class="mut">"막혀도 바로 답 주지 말고 <b style="color:#D9D9DE">힌트를 한 단계씩</b>"</td></tr>
+      <tr><td><b>설명 깊이의 착각</b><br><span class="mut" style="font-size:12.5px">Illusion of depth</span></td><td class="mut">설명해보기 전까진 <b style="color:#D9D9DE">안다고 착각</b>한다</td><td class="mut">"내 설명에서 <b style="color:#D9D9DE">얼버무린 곳을 되물어라</b>"</td></tr>
+    </table>
+    <div class="note">공통점은 하나다 — <b>편한 쪽이 아니라 남는 쪽</b>을 고른다. 메타 프롬프트의 역할은 Claude가 자동으로 없애버리는 마찰을 <b>필요한 만큼 되돌려 놓는</b> 것이다.</div>
+  </div>
+  <div class="takeaway">편해지려고 쓰면 안 남고, <b>남기려고 쓰면 남는다</b></div>
+</section>
+
+<!-- ═══════════ 07 · 4대 패턴 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">07</div>
+  <div class="body">
+    <div class="eyebrow">전체 지도 · PATTERNS</div>
+    <h1>학습용 메타 프롬프트 <em>4대 패턴</em></h1>
+    <div class="grid2">
+      <div class="gcard">
+        <div class="gh"><span class="em">🗺️</span><h3>① 설계자 — 배우기 전에</h3></div>
+        <div class="meta">"가르치기 전에 내 수준부터 진단해라"</div>
+        <p>무엇을 어떤 순서로 배울지 <b>학습 경로</b>를 짜게 한다. 시작점이 틀리면 나머지가 다 어긋난다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">❓</span><h3>② 소크라테스 — 배우는 중에</h3></div>
+        <div class="meta">"답 대신 질문을 하나 던져라"</div>
+        <p>막혔을 때 정답이 아니라 <b>다음 질문</b>을 받는다. 생각의 주도권이 나에게 남는다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">✍️</span><h3>③ 선(先)작성 — 만들 때</h3></div>
+        <div class="meta">"내가 먼저 쓴다. 너는 채점해라"</div>
+        <p>순서를 뒤집는다. 내가 초안을 쓰고 Claude는 <b>리뷰어</b>가 된다. 고쳐주지는 않게 한다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🔎</span><h3>④ 회고 — 배운 뒤에</h3></div>
+        <div class="meta">"내 설명에서 구멍을 찾아라"</div>
+        <p>내가 설명하고 Claude가 <b>구멍을 짚는다</b>. 착각을 깨는 가장 싸고 빠른 방법.</p>
+      </div>
+    </div>
+    <div class="note">순서대로 쓰면 <b>한 사이클</b>이 된다 — 진단 → 시도 → 채점 → 회고. 네 개를 다 외울 필요는 없다. 오늘 하나만 골라 써도 충분하다.</div>
+  </div>
+  <div class="takeaway">전 · 중 · 후, 각 구간에 <b>맞는 패턴</b>이 있다</div>
+</section>
+
+<!-- ═══════════ 08 · 패턴1 설계자 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">08</div>
+  <div class="body">
+    <div class="eyebrow">패턴 ① · 설계자</div>
+    <h1>가르치기 전에 <em>진단부터</em> 시켜라</h1>
+    <div class="cols-64">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">메타 프롬프트 · 학습 경로 설계</span><span class="tag2">COPY</span></div>
+        <pre>나는 <span class="hl">React 상태관리</span>를 배우려고 한다.
+현재 수준: <span class="hl">useState는 쓰지만 useReducer는 안 써봤다</span>
+목표: <span class="hl">2주 뒤 코드리뷰에서 상태 설계 의견을 낼 수 있는 수준</span>
+
+<span class="c"># 바로 가르치지 마라. 이 순서로 진행한다.</span>
+<span class="k">1.</span> 내 수준을 확인할 <span class="s">진단 질문 3개</span>를 먼저 던진다
+<span class="k">2.</span> 내 답을 보고 <span class="s">학습 순서를 다시 짠다</span>
+   (내가 이미 아는 건 과감히 건너뛴다)
+<span class="k">3.</span> 각 단계마다 <span class="s">내가 직접 만들 과제</span>를 붙인다
+<span class="k">4.</span> 각 단계의 <span class="s">완료 기준</span>을 한 줄로 명시한다
+
+<span class="c"># 지금은 1번만 실행해라.</span></pre>
+      </div>
+      <div>
+        <div class="step" style="margin-bottom:10px"><div class="n">핵심</div><div class="t">"지금은 1번만"</div></div>
+        <div class="gcard" style="padding:15px 19px">
+          <p style="font-size:13.6px">이 한 줄이 없으면 Claude는 <b>4단계를 한 번에 쏟아낸다</b>. 그럼 또 읽고 끝난다. 대화를 <b style="color:#D9D9DE">내 응답 지점에서 끊는 것</b>이 메타 프롬프트의 기본기다.</p>
+          <ul>
+            <li><b>수준을 적어야</b> 난이도가 맞는다 — 안 적으면 평균값으로 답한다</li>
+            <li><b>완료 기준</b>이 있어야 "다 배웠다"를 내가 판단할 수 있다</li>
+            <li>진단 질문에 <b>모르겠다고 답해도 된다</b> — 그것도 정보다</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">좋은 커리큘럼은 <b>내 위치를 아는 것</b>에서 시작한다</div>
+</section>
+
+<!-- ═══════════ 09 · 패턴2 소크라테스 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">09</div>
+  <div class="body">
+    <div class="eyebrow">패턴 ② · 소크라테스</div>
+    <h1>정답 대신 <em>다음 질문</em>을 받아라</h1>
+    <div class="cols">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">메타 프롬프트 · 튜터 모드</span><span class="tag2">COPY</span></div>
+        <pre><span class="c"># 지금부터 튜터 모드다. 다음 규칙을 지켜라.</span>
+
+· 코드를 <span class="s">대신 써주지 마라</span>. 구현은 내가 한다.
+· 내가 막히면 답 대신 <span class="s">질문을 하나만</span> 던져라.
+· 힌트는 <span class="s">한 번에 한 단계씩만</span> 공개해라.
+· 내가 <span class="hl">"정답 보여줘"</span>라고 말할 때만 답을 보여라.
+· 내 답이 틀리면 <span class="s">어디가 왜 틀렸는지</span>만 짚고
+  고친 코드는 주지 마라.</pre>
+      </div>
+      <div>
+        <div class="term">
+          <div class="tb"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tt">Claude Code</span></div>
+          <pre style="font-size:12.5px;line-height:1.78"><span class="p">❯</span> <span class="hl">이 재귀가 왜 스택오버플로가 나지?</span>
+
+<span class="k">⏺</span> <span class="dm">답을 주기 전에 하나만 묻겠습니다.</span>
+  <span class="c">⎿</span> <span class="dm">이 함수가 자기를 부를 때</span>
+     <span class="dm">입력이 어떻게 줄어들고 있나요?</span>
+
+<span class="p">❯</span> <span class="hl">어... 안 줄어드는 것 같은데</span>
+
+<span class="k">⏺</span> <span class="ok">바로 그겁니다.</span> <span class="dm">그럼 종료 조건은</span>
+  <span class="c">⎿</span> <span class="dm">언제 참이 되어야 할까요?</span></pre>
+        </div>
+        <div class="note" style="margin-top:12px">답을 들었을 때보다 <b>내가 말한 순간</b> 기억에 박힌다. 이게 인출 연습이다.</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">막힘을 없애지 말고 <b>짧게 만들어라</b></div>
+</section>
+
+<!-- ═══════════ 10 · 패턴3 선작성 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">10</div>
+  <div class="body">
+    <div class="eyebrow">패턴 ③ · 선(先)작성 후(後)채점</div>
+    <h1>순서를 뒤집으면 <em>역할도 뒤집힌다</em></h1>
+    <div class="cols-64">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">메타 프롬프트 · 내가 먼저, 너는 채점</span><span class="tag2">COPY</span></div>
+        <pre>이 함수는 <span class="s">내가 먼저 짠다. 너는 아직 쓰지 마라.</span>
+
+<span class="c"># 지금 해줄 것 (구현 전)</span>
+· 내가 고려해야 할 <span class="s">엣지 케이스 목록</span>만 뽑아줘
+· 정답 구조는 알려주지 마라
+
+<span class="c"># 내가 제출한 뒤에 할 것</span>
+<span class="k">1.</span> 동작하는가 — <span class="s">반증할 테스트 케이스</span>로 공격해라
+<span class="k">2.</span> 내가 놓친 엣지 케이스
+<span class="k">3.</span> 더 나은 접근이 있다면 <span class="hl">'왜' 더 나은지 근거만</span>
+
+<span class="c"># 단, 고쳐주지는 마라. 내가 고칠 기회를 남겨라.</span></pre>
+      </div>
+      <div>
+        <div class="cards" style="gap:10px">
+          <div class="card" style="padding:13px 18px"><div class="chip b">1</div><div>
+            <h3 style="font-size:16px">먼저 쓰면 내 한계가 보인다</h3>
+            <p style="font-size:13px">코드를 받아 읽으면 다 아는 것 같다. <b style="color:#D9D9DE">직접 쓰면 모르는 곳에서 손이 멈춘다</b> — 그 지점이 배울 곳이다.</p>
+          </div></div>
+          <div class="card" style="padding:13px 18px"><div class="chip g">2</div><div>
+            <h3 style="font-size:16px">리뷰는 정답보다 정보가 많다</h3>
+            <p style="font-size:13px">"이렇게 해라"보다 <b style="color:#D9D9DE">"여기서 이 입력이 오면 깨진다"</b>가 훨씬 오래 남는다.</p>
+          </div></div>
+          <div class="card" style="padding:13px 18px"><div class="chip o">3</div><div>
+            <h3 style="font-size:16px">고치는 것까지 내 몫</h3>
+            <p style="font-size:13px">지적까지만 받고 수정은 내가 한다. 이 한 걸음이 <b style="color:#D9D9DE">읽은 지식과 쓸 수 있는 지식</b>을 가른다.</p>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">Claude를 <b>작성자가 아니라 리뷰어</b>로 세워라</div>
+</section>
+
+<!-- ═══════════ 11 · 패턴4 회고 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">11</div>
+  <div class="body">
+    <div class="eyebrow">패턴 ④ · 회고</div>
+    <h1>내가 설명하고 <em>구멍을 찾게</em> 하라</h1>
+    <div class="cols">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">메타 프롬프트 · 파인만 회고</span><span class="tag2">COPY</span></div>
+        <pre>방금 배운 걸 <span class="s">내가 설명해보겠다.</span>
+
+<span class="hl">[내 설명을 여기 붙여넣는다]</span>
+
+내 설명에서 다음 셋을 각각 지적해라.
+<span class="k">·</span> <span class="s">틀린 부분</span> — 사실과 다른 곳
+<span class="k">·</span> <span class="s">얼버무린 부분</span> — 아는 척했지만 근거가 없는 곳
+<span class="k">·</span> <span class="s">빠진 전제</span> — 내가 당연하다고 넘어간 곳
+
+<span class="c"># 정답을 알려주기 전에, 얼버무린 곳을 먼저 되물어라.</span></pre>
+      </div>
+      <div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:8px"><span class="em">💡</span><h3>왜 '얼버무린 곳'인가</h3></div>
+          <p style="font-size:13.5px">틀린 건 스스로도 안다. 위험한 건 <b>맞는 것 같은데 근거가 없는 문장</b>이다. "알아서 잘 처리해줘요" 같은 말이 나오는 지점이 정확히 내 구멍이다.</p>
+        </div>
+        <div class="step"><div class="n">TIP</div><div class="t">설명은 짧게, 대신 매일</div><div class="d">3줄이면 충분하다</div></div>
+      </div>
+    </div>
+    <div class="note">한 걸음 더 — <b>"오늘 내가 틀린 것만 모아 오답 노트를 만들어줘"</b>. 실수는 흩어지면 사라지지만 모이면 패턴이 된다.</div>
+  </div>
+  <div class="takeaway">설명하지 못하면 <b>아직 모르는 것</b>이다</div>
+</section>
+
+<!-- ═══════════ 12 · Learning 출력 스타일 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">12</div>
+  <div class="body">
+    <div class="eyebrow">공식 기능 · OUTPUT STYLES</div>
+    <h1>Claude Code에 <em>학습 모드</em>가 이미 있다</h1>
+    <div class="lead">출력 스타일은 <b>시스템 프롬프트 자체를 바꾼다</b> — 매 턴 다시 부탁할 필요가 없는, 가장 강력한 메타 프롬프트 자리다.</div>
+    <div class="grid3">
+      <div class="gcard">
+        <div class="gh"><span class="em">📖</span><h3>Explanatory</h3></div>
+        <div class="meta">교육용 "Insights"를 곁들인다</div>
+        <p>작업은 그대로 하되 <b>구현 선택의 이유와 코드베이스 패턴</b>을 중간중간 설명해준다. 낯선 저장소에 처음 들어갈 때 특히 좋다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">✋</span><h3>Learning</h3></div>
+        <div class="meta">코드에 <code>TODO(human)</code> 을 남긴다</div>
+        <p>설명에 더해 <b>작지만 중요한 코드 조각을 나에게 맡긴다</b>. 오늘 배운 '선작성 패턴'이 기능으로 들어가 있는 셈이다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🛠️</span><h3>커스텀</h3></div>
+        <div class="meta">~/.claude/output-styles/*.md</div>
+        <p>내 규칙으로 직접 만든다. 코딩은 그대로 시키고 말투만 바꾸려면 <code>keep-coding-instructions: true</code>를 켜라.</p>
+      </div>
+    </div>
+    <div class="note"><b>주의</b> — <code>/output-style</code> 명령은 v2.1.91에서 <b>제거됐다</b>. 지금은 <code>/config</code> → Output style에서 고르거나 설정의 <code>outputStyle</code>을 직접 쓴다. 스타일은 세션 시작 때 한 번 읽으므로 <b><code>/clear</code> 후 또는 새 세션부터</b> 적용된다.</div>
+  </div>
+  <div class="takeaway">매번 부탁하지 말고 <b>스타일로 고정</b>하라</div>
+</section>
+
+<!-- ═══════════ 13 · 읽기 전용 학습 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">13</div>
+  <div class="body">
+    <div class="eyebrow">활용 · READ-ONLY LEARNING</div>
+    <h1>고치기 전에 <em>읽는 법</em>부터 배운다</h1>
+    <div class="cols">
+      <div class="gcard">
+        <div class="gh"><span class="em">📋</span><h3>플랜 모드를 <b>예측 훈련</b>으로</h3></div>
+        <div class="meta">Shift+Tab으로 순환 · <code>/plan</code> 접두사<br>claude --permission-mode plan</div>
+        <p>플랜 모드에서 Claude는 <b>읽고 탐색하되 소스를 고치지 않는다</b>. 계획을 받으면 바로 승인하지 말고 이렇게 쓴다.</p>
+        <ul>
+          <li>계획을 읽기 전에 <b>내 계획을 먼저 3줄로</b> 적는다</li>
+          <li>둘을 비교해 <b>내가 빠뜨린 항목</b>만 본다 — 그게 오늘의 학습 목록</li>
+          <li><span class="kbd">Ctrl+G</span>로 계획을 에디터에서 직접 고쳐본다</li>
+        </ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🔍</span><h3>탐색은 <b>서브에이전트</b>에게</h3></div>
+        <div class="meta">내장 Explore · 읽기 전용<br>메인 대화는 깨끗하게 유지</div>
+        <p>"이 저장소에서 로그인은 어디서 처리되나?" 같은 <b>대량 탐색</b>은 별도 컨텍스트로 보낸다. 요약만 돌아오니 내 대화가 로그로 덮이지 않는다.</p>
+        <ul>
+          <li>구조 파악 → 내가 가설 → 코드로 확인 순서</li>
+          <li>답을 받고 끝내지 말고 <b>"내가 맞게 이해했나" 되묻기</b></li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">쓰기 권한을 잠그는 것만으로 학습 모드가 된다 — <b>못 고치면 설명할 수밖에 없다</b>. 이게 다음 장의 핵심 아이디어다.</div>
+  </div>
+  <div class="takeaway">읽기 전용은 제약이 아니라 <b>학습 장치</b>다</div>
+</section>
+
+<!-- ═══════════ 14 · 환경에 심기 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">14</div>
+  <div class="body">
+    <div class="eyebrow">정착 · INSTALL IT</div>
+    <h1>좋은 메타 프롬프트는 <em>설치하는 것</em></h1>
+    <div class="grid3">
+      <div class="gcard">
+        <div class="gh"><span class="em">📝</span><h3>CLAUDE.md</h3></div>
+        <div class="meta">저장소마다 · 항상 읽힌다</div>
+        <pre style="font-family:var(--mono);font-size:11.5px;line-height:1.68;color:#B9B9C1;background:#101013;border:1px solid #232329;border-radius:8px;padding:10px 12px;margin:9px 0 0;white-space:pre-wrap">## 학습 모드
+- 속도보다 이해가 우선이다.
+- 구현 전에 접근을 먼저 설명하고
+  내 동의를 받는다.
+- 핵심 로직은 TODO(human)으로
+  비워두고 내가 채우게 한다.</pre>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🎓</span><h3>튜터 서브에이전트</h3></div>
+        <div class="meta">.claude/agents/tutor.md</div>
+        <pre style="font-family:var(--mono);font-size:11.5px;line-height:1.68;color:#B9B9C1;background:#101013;border:1px solid #232329;border-radius:8px;padding:10px 12px;margin:9px 0 0;white-space:pre-wrap">---
+name: tutor
+description: 개념 설명·학습 점검용
+tools: Read, Grep, Glob
+---
+너는 소크라테스식 튜터다.
+완성 코드를 제공하지 않는다.</pre>
+        <p style="margin-top:9px;font-size:13px">Edit·Write를 <b>안 주면</b> 대신 써주고 싶어도 <b style="color:#D9D9DE">쓸 수가 없다</b>.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">⚡</span><h3>훅으로 강제</h3></div>
+        <div class="meta">PreToolUse · matcher: "Edit|Write"</div>
+        <pre style="font-family:var(--mono);font-size:11.5px;line-height:1.68;color:#B9B9C1;background:#101013;border:1px solid #232329;border-radius:8px;padding:10px 12px;margin:9px 0 0;white-space:pre-wrap">#!/bin/bash
+echo "학습 모드: 이 파일은
+내가 직접 쓴다. 힌트만 달라." >&2
+exit 2   # 차단</pre>
+        <p style="margin-top:9px;font-size:13px">부탁이 아니라 <b style="color:#D9D9DE">규칙</b>이 된다. 의지가 약한 날에도 지켜진다.</p>
+      </div>
+    </div>
+    <div class="note">셋의 강도가 다르다 — CLAUDE.md는 <b>부탁</b>, 서브에이전트는 <b>구조적 제약</b>, 훅은 <b>강제</b>. 오늘 하나만 고른다면 <b>튜터 서브에이전트</b>가 비용 대비 효과가 가장 좋다.</div>
+  </div>
+  <div class="takeaway">의지에 기대지 말고 <b>환경에 심어라</b></div>
+</section>
+
+<!-- ═══════════ 15 · 프롬프트 개선 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">15</div>
+  <div class="body">
+    <div class="eyebrow">한 단계 위 · PROMPT ABOUT PROMPTS</div>
+    <h1>프롬프트 쓰는 법도 <em>배울 수 있다</em></h1>
+    <div class="cols-64">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">메타 프롬프트 · 내 프롬프트를 비평시키기</span><span class="tag2">COPY</span></div>
+        <pre>아래는 내가 쓴 프롬프트다.
+
+<span class="hl">[내 프롬프트]</span>
+
+<span class="c"># 이 프롬프트를 실행하지 마라. 대신 분석해라.</span>
+<span class="k">1.</span> 이 프롬프트로 네가 <span class="s">오해할 수 있는 지점</span>
+<span class="k">2.</span> 내가 빠뜨린 <span class="s">맥락·제약·성공 기준</span>
+<span class="k">3.</span> 수정본 — <span class="hl">무엇을 왜 바꿨는지</span> 함께
+
+<span class="c"># 수정본을 그냥 쓰지 않겠다. 차이를 배우려는 것이다.</span></pre>
+      </div>
+      <div>
+        <div class="gcard" style="padding:15px 19px">
+          <div class="gh" style="margin-bottom:8px"><span class="em">🔁</span><h3>이게 진짜 '메타'인 이유</h3></div>
+          <p style="font-size:13.4px">여기서 배우는 건 React도 알고리즘도 아니다. <b>내가 무엇을 안 적었는지</b>를 배운다. 이건 도구가 바뀌어도 남는 기술이다.</p>
+          <ul>
+            <li>같은 요청이 세 번 어긋나면 <b>내 프롬프트를 의심</b>할 때</li>
+            <li>"실행하지 마라"가 없으면 <b>그냥 해버린다</b></li>
+            <li>수정본을 <b>바로 쓰지 않는 것</b>이 핵심 — 차이를 봐야 는다</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">답이 이상하면 <b>질문을 먼저 의심</b>하라</div>
+</section>
+
+<!-- ═══════════ 16 · 안티패턴 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">16</div>
+  <div class="body">
+    <div class="eyebrow">함정 · ANTI-PATTERNS</div>
+    <h1>이렇게 쓰면 <em>다시 원점</em>이다</h1>
+    <div class="grid3">
+      <div class="gcard warn">
+        <div class="gh"><span class="em">⏭️</span><h3>답부터 열어보기</h3></div>
+        <p>막히자마자 정답을 보면 인출 기회가 통째로 날아간다. <b style="color:#D9D9DE">최소 3분은 내 힘으로</b> — 타이머를 켜두면 확실히 지켜진다.</p>
+      </div>
+      <div class="gcard warn">
+        <div class="gh"><span class="em">⏎</span><h3>이해 없이 승인 연타</h3></div>
+        <p>diff를 안 읽고 넘기면 학습도 리뷰도 없다. 승인 전에 <b style="color:#D9D9DE">"이 변경으로 뭐가 깨질 수 있지?"</b> 한 번만 자문하자.</p>
+      </div>
+      <div class="gcard warn">
+        <div class="gh"><span class="em">📏</span><h3>수준을 안 알려주기</h3></div>
+        <p>수준을 안 적으면 평균값으로 답한다. 너무 쉬우면 지루하고 너무 어려우면 포기다. <b style="color:#D9D9DE">아는 것·모르는 것을 먼저 적어라</b>.</p>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:13px">
+      <div class="gcard">
+        <div class="gh"><span class="em">👀</span><h3>읽고 안다고 착각</h3></div>
+        <p>설명이 매끄러울수록 착각은 커진다. 닫고 <b style="color:#D9D9DE">다시 써보는 것</b>까지가 한 세트다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🧪</span><h3>검증 없이 믿기</h3></div>
+        <p>설명도 틀릴 수 있다 — 특히 최신 버전·API. 중요한 건 <b style="color:#D9D9DE">공식 문서로 대조</b>하는 습관.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">⌨️</span><h3>매번 다시 타이핑</h3></div>
+        <p>좋았던 프롬프트는 <b style="color:#D9D9DE">파일로 남겨라</b>. 기억에 의존하면 바쁜 날 제일 먼저 사라진다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">편함이 목적이 되는 순간 <b>학습은 멈춘다</b></div>
+</section>
+
+<!-- ═══════════ 17 · 핵심 정리 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">17</div>
+  <div class="body">
+    <div class="eyebrow">핵심 정리 · RECAP</div>
+    <h1>오늘 <em>네 가지</em>만 가져가자</h1>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="sum"><div class="n">01</div><div class="k"><em>순서</em></div><div class="d">내가 먼저, AI는 나중. 같은 도구라도 <b style="color:#D9D9DE">붙이는 순서</b>가 남는 것을 바꾼다.</div></div>
+      <div class="sum"><div class="n">02</div><div class="k"><em>역할</em></div><div class="d">생산자가 아니라 <b style="color:#D9D9DE">코치·리뷰어</b>로 세워라. "대신 쓰지 마라" 한 줄이 전부를 바꾼다.</div></div>
+      <div class="sum"><div class="n">03</div><div class="k"><em>마찰</em></div><div class="d">편한 쪽이 아니라 남는 쪽. 필요한 만큼의 <b style="color:#D9D9DE">막힘</b>을 일부러 남겨라.</div></div>
+      <div class="sum"><div class="n">04</div><div class="k"><em>설치</em></div><div class="d">좋은 메타 프롬프트는 타이핑이 아니라 <b style="color:#D9D9DE">환경</b>이다 — 스타일 · CLAUDE.md · 에이전트 · 훅.</div></div>
+    </div>
+  </div>
+  <div class="takeaway">AI가 잘하게 하지 말고 <b>내가 잘하게 하라</b></div>
+</section>
+
+<!-- ═══════════ 18 · 실습 미션 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="pagenum">18</div>
+  <div class="body">
+    <div class="eyebrow">실습 · MISSION</div>
+    <h1>지금 <em>30분</em>이면 다 해본다</h1>
+    <div class="cards">
+      <div class="card"><div class="chip b">1</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>튜터 서브에이전트 만들기</h3><span class="time">10분</span></div>
+        <p><code>.claude/agents/tutor.md</code>를 만들고 <b style="color:#D9D9DE">tools에 Edit·Write를 빼라</b>. <code>@agent-tutor</code>로 부른 뒤 "이거 대신 짜줘"라고 시켜보자 — <b style="color:#D9D9DE">못 한다</b>. 그때 뭐라고 답하는지가 이 실습의 핵심이다.</p>
+      </div></div>
+      <div class="card"><div class="chip g">2</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>선(先)작성으로 함수 하나 짜기</h3><span class="time">15분</span></div>
+        <p>오늘 짤 함수 하나를 골라 <b style="color:#D9D9DE">엣지 케이스 목록만</b> 받고 내가 먼저 구현한다. 제출 후 반증 테스트로 공격받고, <b style="color:#D9D9DE">수정은 내가</b> 한다.</p>
+      </div></div>
+      <div class="card"><div class="chip o">3</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>3줄 회고 남기기</h3><span class="time">5분</span></div>
+        <p>오늘 배운 걸 <b style="color:#D9D9DE">3줄로 설명</b>하고 파인만 프롬프트에 넣는다. "얼버무린 부분"으로 지적당한 곳이 <b style="color:#D9D9DE">내일 공부할 목록</b>이다.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="takeaway">오늘 하나만 해도 <b>내일이 달라진다</b></div>
+</section>
+
+<!-- ═══════════ 19 · OUTRO ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#메타프롬프트</div>
+  </header>
+  <div class="outro">
+    <div class="eb">WRAP-UP</div>
+    <h1>AI가 대신 자라지는<br><em>않는다</em></h1>
+    <div class="d">Claude는 오늘 하루의 결과를 만들어줄 수 있지만,<br>1년 뒤의 <b style="color:#D8D8DC">나</b>를 만들어주지는 않는다</div>
+    <div class="avatar"><svg style="width:52px;height:52px;color:var(--orange)"><use href="#spark"/></svg></div>
+    <div class="cta">Q&amp;A · 질문 환영</div>
+    <div class="promo">
+      <div class="th">SERIES<br>RECAP</div>
+      <div>
+        <div class="pt">시리즈로 이어집니다 · 서브에이전트 → 훅 → 메타 프롬프트</div>
+        <div class="pd">컨텍스트를 나누고, 규칙을 강제하고, 학습을 설계한다 <span class="hot">완결</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /stage -->
+
+<div class="hud">
+  <span class="cnt" id="cnt">01 / 19</span>
+  <button id="prev" aria-label="이전 슬라이드">‹</button>
+  <button id="next" aria-label="다음 슬라이드">›</button>
+  <button id="fs" aria-label="전체화면 (F)" style="display:grid;place-items:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="display:block"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+<div class="hint"><b>← →</b> 슬라이드 이동 &nbsp;·&nbsp; <b>F</b> 전체화면 &nbsp;·&nbsp; <b>Ctrl+P</b> PDF 저장</div>
+<div class="progress" id="prog"></div>
+</div><!-- /deck -->
+
+<script>
+(function(){
+  var stage=document.getElementById('stage');
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var cnt=document.getElementById('cnt');
+  var prog=document.getElementById('prog');
+  var cur=0, N=slides.length;
+
+  function pad(n){return String(n).padStart(2,'0');}
+  function go(n){
+    n=Math.max(0,Math.min(N-1,n));
+    if(n===cur && slides[n].classList.contains('active')){update();return;}
+    slides[cur].classList.remove('active');
+    cur=n;
+    slides[cur].classList.add('active');
+    update();
+  }
+  function update(){
+    cnt.textContent=pad(cur+1)+' / '+pad(N);
+    prog.style.width=(N>1?(cur/(N-1))*100:100)+'%';
+    try{if(history.replaceState){history.replaceState(null,'','#'+(cur+1));}}catch(e){/* 샌드박스(미리보기)에서는 URL 갱신 불가 — 무시 */}
+  }
+  function next(){go(cur+1);}
+  function prev(){go(cur-1);}
+
+  function fit(){
+    var s=Math.min(window.innerWidth/1280, window.innerHeight/720);
+    stage.style.transform='translate(-50%,-50%) scale('+s+')';
+  }
+  window.addEventListener('resize',fit);
+  fit();
+
+  // ── 안전장치: 폰트 대체·번역 등으로 내용이 넘치면 본문만 살짝 축소 ──
+  function fitBodies(){
+    for(var i=0;i<N;i++){
+      var b=slides[i].querySelector('.body');
+      if(!b) continue;
+      b.style.transform='none';
+      var kids=b.children;
+      if(!kids.length) continue;
+      var last=kids[kids.length-1];
+      var need=last.offsetTop+last.offsetHeight-b.offsetTop;
+      var avail=b.clientHeight;
+      if(need>avail+1){
+        var k=Math.max(.72, avail/need);
+        b.style.transformOrigin='top center';
+        b.style.transform='scale('+k+')';
+      }
+    }
+  }
+  window.addEventListener('resize',fitBodies);
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fitBodies);}
+  setTimeout(fitBodies,60);
+  fitBodies();
+
+  document.getElementById('next').addEventListener('click',next);
+  document.getElementById('prev').addEventListener('click',prev);
+
+  var toastEl=null,toastT=null;
+  function toast(msg){
+    if(!toastEl){toastEl=document.createElement('div');toastEl.className='toast';document.body.appendChild(toastEl);}
+    toastEl.textContent=msg;
+    toastEl.classList.add('on');
+    clearTimeout(toastT);
+    toastT=setTimeout(function(){toastEl.classList.remove('on');},3000);
+  }
+  function fsBlocked(){toast('이 미리보기 창에서는 전체화면이 차단돼 있어요 — 파일을 다운로드해 브라우저에서 열면 사용할 수 있습니다');}
+  function toggleFs(){
+    var d=document,el=d.documentElement;
+    var inFs=d.fullscreenElement||d.webkitFullscreenElement;
+    try{
+      if(inFs){(d.exitFullscreen||d.webkitExitFullscreen).call(d);return;}
+      var req=el.requestFullscreen||el.webkitRequestFullscreen;
+      if(!req){fsBlocked();return;}
+      var p=req.call(el);
+      if(p&&p.catch){p.catch(fsBlocked);}
+    }catch(err){fsBlocked();}
+  }
+  document.getElementById('fs').addEventListener('click',toggleFs);
+
+  window.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'||e.key===' '){e.preventDefault();next();}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();prev();}
+    else if(e.key==='Home'){e.preventDefault();go(0);}
+    else if(e.key==='End'){e.preventDefault();go(N-1);}
+    else if(e.key==='f'||e.key==='F'){toggleFs();}
+  });
+
+  var tx=null;
+  window.addEventListener('touchstart',function(e){tx=e.changedTouches[0].clientX;},{passive:true});
+  window.addEventListener('touchend',function(e){
+    if(tx===null)return;
+    var dx=e.changedTouches[0].clientX-tx;
+    if(dx<-50)next(); else if(dx>50)prev();
+    tx=null;
+  },{passive:true});
+
+  var h=parseInt((location.hash||'').replace('#',''),10);
+  if(!isNaN(h)&&h>=1&&h<=N){slides[0].classList.remove('active');cur=h-1;slides[cur].classList.add('active');}
+  update();
+})();
+</script>
+</body>
+</html>

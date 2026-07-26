@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 스킬과 플러그인 완벽 가이드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --bg:#0B0B0D;
+  --panel:#161619;
+  --panel2:#1D1D22;
+  --line:#2A2A2F;
+  --line-soft:#1E1E23;
+  --orange:#FF5B1F;
+  --orange-hi:#FF8A57;
+  --orange-soft:rgba(255,91,31,.12);
+  --orange-bd:rgba(255,91,31,.38);
+  --txt:#F3F2EF;
+  --muted:#A2A2AB;
+  --dim:#77777F;
+  --cream:#F6F1E7;
+  --blue:#3D6FE0;
+  --green:#22A96B;
+  --purple:#8B5CF6;
+  --amber:#E8930C;
+  --red:#E14B3C;
+  --mono:'JetBrains Mono','SF Mono','Cascadia Code','D2Coding',Consolas,ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:#050506;
+  font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+  color:var(--txt);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+.deck{position:fixed;inset:0}
+.stage{
+  position:absolute;left:50%;top:50%;
+  width:1280px;height:720px;
+  transform:translate(-50%,-50%) scale(1);
+  transform-origin:center center;
+  background:var(--bg);
+  border-radius:6px;
+  overflow:hidden;
+  box-shadow:0 30px 90px rgba(0,0,0,.6);
+}
+
+/* ---------- slide frame ---------- */
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  opacity:0;visibility:hidden;
+  transform:translateY(16px);
+  transition:opacity .38s ease,transform .38s ease,visibility .38s;
+  pointer-events:none;
+}
+.slide.active{opacity:1;visibility:visible;transform:translateY(0);pointer-events:auto}
+
+.bar{
+  height:56px;flex:none;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 44px;
+  border-bottom:1px solid var(--line-soft);
+  background:rgba(11,11,13,.9);
+  z-index:5;
+}
+.brand{display:flex;align-items:center;gap:11px;font-size:14.5px}
+.brand .logo{width:19px;height:19px;flex:none;display:block}
+.brand b{font-weight:800;letter-spacing:-.2px}
+.brand i{font-style:normal;color:#3A3A40}
+.brand span{color:var(--muted);font-weight:500}
+.tag{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+
+.pagenum{
+  position:absolute;top:74px;right:48px;
+  font-size:14px;font-weight:700;color:#5C5C64;letter-spacing:.12em;
+  font-family:var(--mono);
+}
+.body{flex:1;min-height:0;padding:30px 64px 0;display:flex;flex-direction:column}
+.eyebrow{
+  color:var(--orange);font-size:15px;font-weight:800;letter-spacing:.14em;
+  margin-bottom:14px;
+}
+h1{font-size:41px;line-height:1.24;font-weight:800;letter-spacing:-.6px;margin-bottom:24px}
+h1 em{font-style:normal;color:var(--orange)}
+.lead{font-size:16.5px;color:var(--muted);line-height:1.62;margin:-8px 0 22px;max-width:980px}
+.lead b{color:#D8D8DC;font-weight:700}
+
+.takeaway{
+  flex:none;margin:auto 64px 32px;
+  background:var(--orange-soft);
+  border:1px solid var(--orange-bd);
+  border-radius:10px;
+  padding:13px 20px;text-align:center;
+  font-size:17px;font-weight:800;color:var(--orange);
+  letter-spacing:-.2px;
+}
+.takeaway b{color:var(--orange-hi)}
+
+/* ---------- numbered cards ---------- */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:13px;padding:16px 22px;
+  display:flex;gap:17px;align-items:flex-start;
+}
+.chip{
+  width:31px;height:31px;border-radius:8px;flex:none;margin-top:2px;
+  display:grid;place-items:center;
+  font-weight:800;font-size:15px;color:#fff;font-family:var(--mono);
+}
+.chip.b{background:var(--blue)} .chip.g{background:var(--green)}
+.chip.p{background:var(--purple)} .chip.a{background:var(--amber)}
+.chip.r{background:var(--red)} .chip.o{background:var(--orange)}
+.card h3{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.card h3 code{font-family:var(--mono);font-size:16px;color:var(--orange-hi);font-weight:700}
+.card p{font-size:14.5px;color:var(--muted);margin-top:5px;line-height:1.55}
+.card p code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+/* ---------- before/after vs ---------- */
+.vs{display:grid;grid-template-columns:1fr 52px 1fr;align-items:stretch}
+.vsbox{border-radius:15px;padding:24px 28px}
+.vsbox.was{background:#211311;border:1px solid #3C221B}
+.vsbox.now{background:#0E1727;border:1px solid #2B4A88}
+.vsbox .k{font-size:13.5px;font-weight:800;letter-spacing:.06em;margin-bottom:10px}
+.vsbox.was .k{color:#E0876A}
+.vsbox.now .k{color:#6FA1FF}
+.vsbox .t{font-size:22px;font-weight:800;letter-spacing:-.4px;line-height:1.35}
+.vsbox .d{font-size:14.5px;color:var(--muted);margin-top:9px;line-height:1.55}
+.vsarr{display:grid;place-items:center;color:#E4E4E8;font-size:26px}
+
+/* ---------- terminal / editor mockup ---------- */
+.term{background:#0D0D10;border:1px solid #26262C;border-radius:13px;overflow:hidden}
+.term .tb{
+  height:38px;display:flex;align-items:center;gap:8px;padding:0 15px;
+  background:#141418;border-bottom:1px solid #212127;
+}
+.dot{width:11px;height:11px;border-radius:50%}
+.dot.r{background:#FF5F57}.dot.y{background:#FEBC2E}.dot.g{background:#28C840}
+.term .tt{font-size:12.5px;color:#84848C;margin-left:7px;font-weight:600}
+.term pre{
+  margin:0;padding:18px 24px;
+  font-family:var(--mono);font-size:13.5px;line-height:1.8;
+  color:#D9D9DF;white-space:pre-wrap;word-break:break-all;
+}
+.term pre .p{color:var(--orange);font-weight:700}
+.term pre .k{color:#FF9264}
+.term pre .s{color:#8CD49A}
+.term pre .c{color:#67676F}
+.term pre .dm{color:#8A8A93}
+.term pre .ok{color:#3ACB82}
+.term pre .hl{color:#FFD9C4}
+
+/* light mac window (slack풍) */
+.win{background:#FFFFFF;border-radius:13px;overflow:hidden;color:#1C1C1E;box-shadow:0 14px 44px rgba(0,0,0,.45)}
+.win .tb{height:38px;display:flex;align-items:center;gap:8px;padding:0 15px;background:#F1EFEC;border-bottom:1px solid #E2DFDA}
+.win .tt{font-size:12.5px;color:#6E6A64;margin-left:7px;font-weight:600}
+
+/* ---------- table ---------- */
+.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.tbl th{
+  text-align:left;color:#87878F;font-weight:700;font-size:12.5px;letter-spacing:.08em;
+  padding:11px 18px;border-bottom:1px solid var(--line);background:#19191D;
+}
+.tbl td{padding:11.5px 18px;border-bottom:1px solid var(--line-soft);vertical-align:top;line-height:1.5}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .mono{font-family:var(--mono);font-size:13px;color:#FFC29E;white-space:nowrap}
+.tbl .mut{color:var(--muted)}
+.pill{display:inline-block;font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:.04em}
+.pill.req{background:rgba(255,91,31,.16);color:#FF8A57}
+.pill.opt{background:#222228;color:#8F8F98}
+
+/* ---------- 3-col grid cards ---------- */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:20px 22px}
+.gcard .gh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.gcard .gh .em{font-size:21px}
+.gcard h3{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.gcard h3 code{font-family:var(--mono);font-size:15.5px;color:var(--orange-hi)}
+.gcard .meta{font-family:var(--mono);font-size:11.5px;color:#8B8B94;background:#101013;border:1px solid #232329;border-radius:7px;padding:6px 10px;margin:9px 0 10px;line-height:1.6}
+.gcard p{font-size:13.8px;color:var(--muted);line-height:1.58}
+.gcard p b{color:#D9D9DE}
+.gcard ul{list-style:none;margin-top:8px}
+.gcard ul li{font-size:13.5px;color:var(--muted);line-height:1.55;padding-left:15px;position:relative;margin-top:5px}
+.gcard ul li::before{content:"·";color:var(--orange);position:absolute;left:2px;font-weight:800}
+
+.note{position:relative;padding-left:22px;font-size:13.5px;color:#8D8D96;line-height:1.55;margin-top:15px}
+.note::before{content:"＊";position:absolute;left:0;top:0;color:var(--orange);font-weight:800}
+.note code{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#1E1E23;padding:1px 6px;border-radius:5px}
+.note b{color:#C9C9CF}
+
+/* ---------- cover ---------- */
+.cover-top{flex:1;min-height:0;background:var(--cream);position:relative;display:grid;place-items:center}
+.cover-bot{flex:none;background:#070708;padding:32px 64px 40px;border-top:1px solid #000}
+.badge{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:13px;font-weight:800;letter-spacing:.03em;
+  padding:6px 13px;border-radius:7px;margin-bottom:16px;
+}
+.cover-bot h1{font-size:52px;line-height:1.18;letter-spacing:-1.2px;margin-bottom:14px}
+.cover-bot .sub{font-size:17.5px;color:var(--muted)}
+.cover-bot .sub b{color:#EDEDEF}
+
+/* ---------- flow diagram(dark) ---------- */
+.flowwrap{background:#101013;border:1px solid var(--line);border-radius:15px;padding:10px 8px}
+
+/* ---------- two column layout helper ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.cols-64{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
+
+/* mission time chip */
+.time{margin-left:auto;flex:none;font-family:var(--mono);font-size:12px;font-weight:700;color:#8F8F98;background:#111114;border:1px solid #26262C;padding:5px 11px;border-radius:20px}
+
+/* ---------- outro ---------- */
+.outro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:16px}
+.outro .eb{color:var(--orange);font-size:14.5px;font-weight:800;letter-spacing:.22em;margin-bottom:16px}
+.outro h1{font-size:40px;line-height:1.3;margin-bottom:14px}
+.outro .d{font-size:15.5px;color:var(--muted);line-height:1.65;margin-bottom:26px}
+.avatar{
+  width:118px;height:118px;border-radius:50%;
+  background:#141417;border:3px solid var(--orange);
+  display:grid;place-items:center;font-size:56px;margin-bottom:22px;
+  box-shadow:0 0 0 7px rgba(255,91,31,.09);
+}
+.cta{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:16.5px;font-weight:800;padding:13px 42px;border-radius:32px;
+  letter-spacing:-.2px;margin-bottom:26px;
+}
+.promo{
+  display:flex;align-items:center;gap:16px;text-align:left;
+  background:#121215;border:1px solid var(--line);border-radius:14px;
+  padding:14px 22px;
+}
+.promo .th{
+  width:92px;height:56px;border-radius:9px;flex:none;
+  background:linear-gradient(135deg,#2B1B4E,#0E0E12 60%);
+  border:1px solid #3A2E63;
+  display:grid;place-items:center;color:#C9B8FF;
+  font-family:var(--mono);font-size:9.5px;font-weight:800;text-align:center;line-height:1.5;
+}
+.promo .pt{font-size:16px;font-weight:800}
+.promo .pd{font-size:13px;color:var(--muted);margin-top:3px}
+.promo .hot{color:var(--orange);font-weight:800}
+
+.tbl{table-layout:fixed}
+.grid3>*,.grid2>*,.cols>*,.cols-64>*{min-width:0}
+
+/* ---------- controls ---------- */
+.hud{position:fixed;right:22px;bottom:16px;display:flex;align-items:center;gap:10px;z-index:50;user-select:none}
+.hud .cnt{font-family:var(--mono);font-size:12.5px;color:#6E6E76;letter-spacing:.08em;margin-right:2px}
+.hud button{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid #303036;background:#121215;color:#C9C9CF;
+  font-size:16px;cursor:pointer;transition:.18s;
+}
+.hud button:hover{border-color:var(--orange);color:var(--orange)}
+.hint{position:fixed;left:22px;bottom:21px;font-size:12px;color:#55555C;z-index:50;user-select:none}
+.toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%) translateY(8px);background:#1A1A1E;border:1px solid #3A3A40;color:#EDEDEF;font-size:13px;padding:10px 18px;border-radius:10px;z-index:60;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:80%;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.hint b{color:#7C7C84;font-weight:700}
+.progress{position:fixed;left:0;bottom:0;height:3px;background:var(--orange);width:0%;z-index:60;transition:width .3s ease}
+
+/* ---------- print ---------- */
+@media print{
+  body{overflow:visible;background:#0B0B0D}
+  .hud,.hint,.progress,.toast{display:none!important}
+  .deck{position:static}
+  .stage{position:static;transform:none!important;width:1280px;height:auto;box-shadow:none;border-radius:0;overflow:visible;left:auto;top:auto;margin:0 auto}
+  .slide{position:relative;opacity:1!important;visibility:visible!important;transform:none!important;width:1280px;height:720px;page-break-after:always;break-inside:avoid}
+}
+@page{size:1280px 720px;margin:0}
+.sum{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:17px 24px;display:flex;align-items:center;gap:22px}
+.sum .n{font-family:var(--mono);font-size:15px;font-weight:800;color:#6C6C74;flex:none}
+.sum .k{font-size:21px;font-weight:800;letter-spacing:-.3px;width:96px;flex:none}
+.sum .k em{font-style:normal;color:var(--orange)}
+.sum .d{font-size:15px;color:var(--muted);line-height:1.5}
+.sum .d code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+/* ---------- hooks deck 전용 ---------- */
+.exit{display:flex;gap:14px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 20px;margin-bottom:11px}
+.exit .code{font-family:var(--mono);font-size:15px;font-weight:800;color:#fff;background:#2A2A31;border-radius:8px;padding:5px 11px;flex:none;min-width:74px;text-align:center}
+.exit .code.ok{background:var(--green)} .exit .code.no{background:var(--red)} .exit .code.warn{background:#3A3A42;color:#B6B6BF}
+.exit h3{font-size:17px;font-weight:800;letter-spacing:-.3px}
+.exit p{font-size:13.8px;color:var(--muted);margin-top:4px;line-height:1.55}
+.exit p code,.lead code{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+.kbd{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#1E1E23;border:1px solid #2C2C33;padding:2px 7px;border-radius:6px}
+.tbl.tight th,.tbl.tight td{padding:9px 18px}
+.gcard.warn{border-color:#4A2A24;background:#191211}
+.gcard.warn h3{color:#FF8A57}
+/* ---------- meta-prompt deck 전용 ---------- */
+.pp{background:#0D0D10;border:1px solid #26262C;border-radius:13px;overflow:hidden}
+.pp .ph{display:flex;align-items:center;gap:9px;padding:9px 16px;background:#141418;border-bottom:1px solid #212127}
+.pp .ph .ic{width:16px;height:16px;color:var(--orange);flex:none}
+.pp .ph .t{font-size:12.5px;font-weight:800;color:#C0C0C8;letter-spacing:-.1px}
+.pp .ph .tag2{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:#6E6E76;letter-spacing:.06em}
+.pp pre{margin:0;padding:15px 20px;font-family:var(--mono);font-size:12.8px;line-height:1.82;color:#D9D9DF;white-space:pre-wrap;word-break:keep-all}
+.pp pre .c{color:#67676F}.pp pre .k{color:#FF9264}.pp pre .s{color:#8CD49A}.pp pre .hl{color:#FFD9C4}
+.chk{display:flex;gap:13px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 20px}
+.chk .q{width:26px;height:26px;border-radius:7px;flex:none;border:2px solid #3A3A42;margin-top:1px}
+.chk h3{font-size:16.5px;font-weight:800;letter-spacing:-.3px}
+.chk p{font-size:13.5px;color:var(--muted);margin-top:4px;line-height:1.55}
+.chk p b{color:#D9D9DE}
+.step{display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 20px}
+.step .n{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--orange);flex:none}
+.step .t{font-size:15.5px;font-weight:700}
+.step .d{font-size:13.5px;color:var(--muted);margin-left:auto;text-align:right}
+/* ---------- getting-started deck 전용 ---------- */
+.keyrow{display:flex;gap:14px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 18px;margin-bottom:9px}
+.keyrow .kb{font-family:var(--mono);font-size:13px;font-weight:800;color:#FFC29E;background:#1E1E23;border:1px solid #33333A;border-radius:7px;padding:6px 11px;flex:none;min-width:104px;text-align:center}
+.keyrow .kb.hot{color:#fff;background:var(--orange);border-color:var(--orange)}
+.keyrow h3{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.keyrow p{font-size:13.2px;color:var(--muted);margin-top:3px;line-height:1.5}
+.keyrow p b{color:#D9D9DE}
+.req{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 17px;margin-bottom:9px}
+.req .ico{font-size:17px;flex:none;width:22px;text-align:center}
+.req .lb{font-size:14px;font-weight:800;flex:none;width:74px}
+.req .vl{font-size:13.5px;color:var(--muted);line-height:1.45}
+.req .vl b{color:#D9D9DE}
+.mono2{font-family:var(--mono);font-size:12.8px;color:#FFC29E}
+/* ---------- context deck 전용 ---------- */
+.bars{display:flex;flex-direction:column;gap:9px}
+.barrow{display:flex;align-items:center;gap:13px}
+.barrow .nm{font-size:13.5px;font-weight:700;flex:none;width:172px;letter-spacing:-.2px}
+.barrow .nm span{display:block;font-size:11.5px;font-weight:500;color:var(--dim);margin-top:1px}
+.barrow .tr{flex:1;height:26px;background:#131316;border:1px solid #232329;border-radius:7px;overflow:hidden}
+.barrow .fl{height:100%;border-radius:6px 0 0 6px}
+.barrow .tk{font-family:var(--mono);font-size:12.5px;font-weight:700;color:#9A9AA3;flex:none;width:62px;text-align:right}
+.vis{display:flex;gap:13px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 19px;margin-bottom:10px}
+.vis .dt{font-size:19px;flex:none;width:22px;text-align:center;line-height:1.25}
+.vis h3{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.vis p{font-size:13.2px;color:var(--muted);margin-top:4px;line-height:1.5}
+.vis p b{color:#D9D9DE}
+.big{display:flex;align-items:baseline;gap:9px;margin-bottom:4px}
+.big .n{font-family:var(--mono);font-size:32px;font-weight:800;color:var(--orange);letter-spacing:-1px}
+.big .u{font-size:14px;font-weight:700;color:var(--muted)}
+/* ---------- skills & plugins deck 전용 ---------- */
+.layer{display:flex;gap:17px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 20px;margin-bottom:10px}
+.layer .lv{font-family:var(--mono);font-size:11.5px;font-weight:800;color:#fff;background:#2A2A31;border-radius:7px;padding:6px 10px;flex:none;min-width:74px;text-align:center}
+.layer .lv.on{background:var(--orange)}
+.layer .ld{flex:1;min-width:0}
+.layer .ld h3{font-size:16.5px;font-weight:800;letter-spacing:-.3px}
+.layer .ld p{font-size:13.2px;color:var(--muted);margin-top:4px;line-height:1.5}
+.layer .ld p b{color:#D9D9DE}
+.layer .ld p code{font-family:var(--mono);font-size:12.3px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+.layer .lw{flex:none;width:158px}
+.layer .lw .t{font-size:12px;font-weight:800;color:#8A8A93;text-align:right}
+.layer .lw .bb{height:8px;border-radius:4px;margin-top:6px;margin-left:auto}
+.tree{font-family:var(--mono);font-size:13px;line-height:1.92;color:#C0C0C8;background:#0D0D10;border:1px solid #26262C;border-radius:12px;padding:15px 20px;white-space:pre;overflow:hidden}
+.tree b{color:#FF9264;font-weight:700}
+.tree i{font-style:normal;color:#67676F}
+.tree u{text-decoration:none;color:#8CD49A}
+.pill{display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:700;color:#FFC29E;background:#1E1E23;border:1px solid #33333A;border-radius:6px;padding:3px 9px;margin:0 4px 5px 0}
+</style>
+</head>
+<body>
+<div class="deck">
+<div class="stage" id="stage">
+<svg style="display:none" aria-hidden="true"><symbol id="spark" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2.7" stroke-linecap="round" fill="none"><path d="M12 2.6v18.8M2.6 12h18.8M5.4 5.4l13.2 13.2M18.6 5.4L5.4 18.6"/></g></symbol></svg>
+
+<!-- ═══════════ 01 · COVER ═══════════ -->
+<section class="slide active">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="cover-top">
+    <div style="width:88%">
+      <svg viewBox="0 0 1000 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#A29A89"/></marker></defs>
+        <!-- ① 스킬 -->
+        <text x="118" y="20" text-anchor="middle" font-size="12" font-weight="800" fill="#8C6A52" font-family="inherit">① 스킬 · 능력 하나</text>
+        <path d="M74 44 h64 l18 18 v66 a6 6 0 0 1 -6 6 H74 a6 6 0 0 1 -6 -6 V50 a6 6 0 0 1 6 -6z" fill="#FFFFFF" stroke="#B7AF9F" stroke-width="1.6"/>
+        <path d="M138 44 v18 h18" fill="none" stroke="#B7AF9F" stroke-width="1.6"/>
+        <text x="112" y="86" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3F3A31" font-family="ui-monospace,monospace">SKILL</text>
+        <text x="112" y="103" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3F3A31" font-family="ui-monospace,monospace">.md</text>
+        <text x="118" y="156" text-anchor="middle" font-size="11.5" fill="#8C8474" font-family="inherit">지시문 한 장이면 끝</text>
+        <text x="118" y="174" text-anchor="middle" font-size="11.5" fill="#8C8474" font-family="inherit">/skill-name 으로 호출</text>
+        <line x1="176" y1="94" x2="228" y2="94" stroke="#A29A89" stroke-width="1.6" marker-end="url(#pa)"/>
+        <text x="202" y="82" text-anchor="middle" font-size="10.5" fill="#A49B88" font-family="inherit">묶으면</text>
+        <!-- ② 플러그인 -->
+        <text x="382" y="20" text-anchor="middle" font-size="12" font-weight="800" fill="#8C6A52" font-family="inherit">② 플러그인 · 능력 묶음</text>
+        <rect x="238" y="34" width="288" height="120" rx="14" fill="#EDE6D8" stroke="#B7AF9F" stroke-width="1.7"/>
+        <g font-family="ui-monospace,monospace" font-size="11.5" fill="#5A5346">
+          <rect x="254" y="50" width="122" height="30" rx="7" fill="#FFFFFF" stroke="#CFC7B6"/><text x="315" y="70" text-anchor="middle">skills/</text>
+          <rect x="388" y="50" width="122" height="30" rx="7" fill="#FFFFFF" stroke="#CFC7B6"/><text x="449" y="70" text-anchor="middle">agents/</text>
+          <rect x="254" y="88" width="122" height="30" rx="7" fill="#FFFFFF" stroke="#CFC7B6"/><text x="315" y="108" text-anchor="middle">hooks/</text>
+          <rect x="388" y="88" width="122" height="30" rx="7" fill="#FFFFFF" stroke="#CFC7B6"/><text x="449" y="108" text-anchor="middle">.mcp.json</text>
+        </g>
+        <text x="382" y="140" text-anchor="middle" font-size="11" font-weight="700" fill="#948C7A" font-family="ui-monospace,monospace">.claude-plugin/plugin.json</text>
+        <text x="382" y="174" text-anchor="middle" font-size="11.5" fill="#8C8474" font-family="inherit">버전이 붙는 설치 단위</text>
+        <line x1="534" y1="94" x2="586" y2="94" stroke="#A29A89" stroke-width="1.6" marker-end="url(#pa)"/>
+        <text x="560" y="82" text-anchor="middle" font-size="10.5" fill="#A49B88" font-family="inherit">올리면</text>
+        <!-- ③ 마켓플레이스 -->
+        <text x="790" y="20" text-anchor="middle" font-size="12" font-weight="800" fill="#8C6A52" font-family="inherit">③ 마켓플레이스 · 배포</text>
+        <rect x="596" y="34" width="388" height="120" rx="14" fill="#FFFFFF" stroke="#B7AF9F" stroke-width="1.7"/>
+        <g font-family="inherit" font-size="11" fill="#6E6858">
+          <rect x="612" y="50" width="112" height="42" rx="8" fill="#FF5B1F"/><text x="668" y="70" text-anchor="middle" font-size="11.5" font-weight="800" fill="#FFFFFF">플러그인 A</text><text x="668" y="84" text-anchor="middle" font-size="9.5" fill="#FFE0D2">v1.2.0</text>
+          <rect x="734" y="50" width="112" height="42" rx="8" fill="#EDE6D8" stroke="#CFC7B6"/><text x="790" y="75" text-anchor="middle" font-size="11.5" font-weight="700">플러그인 B</text>
+          <rect x="856" y="50" width="112" height="42" rx="8" fill="#EDE6D8" stroke="#CFC7B6"/><text x="912" y="75" text-anchor="middle" font-size="11.5" font-weight="700">플러그인 C</text>
+        </g>
+        <text x="790" y="118" text-anchor="middle" font-size="11.5" font-weight="700" fill="#948C7A" font-family="ui-monospace,monospace">/plugin install A@marketplace</text>
+        <text x="790" y="140" text-anchor="middle" font-size="11" fill="#A49B88" font-family="inherit">카탈로그 하나 = 팀 전체 세팅 통일</text>
+        <text x="790" y="174" text-anchor="middle" font-size="11.5" fill="#8C8474" font-family="inherit">한 줄 설치로 배포된다</text>
+        <!-- 하단 -->
+        <line x1="16" y1="212" x2="984" y2="212" stroke="#D6CFC0" stroke-width="1.3"/>
+        <text x="16" y="244" font-size="13" font-weight="800" fill="#3F3A31" font-family="inherit">스킬은 <tspan fill="#B23F14">내용</tspan>, 플러그인은 <tspan fill="#B23F14">포장</tspan>, 마켓플레이스는 <tspan fill="#B23F14">유통</tspan>이다</text>
+        <text x="16" y="270" font-size="11.5" fill="#A49B88" font-family="inherit">셋은 대체 관계가 아니라 단계다 — 만들고 · 묶고 · 나눈다</text>
+      </svg>
+    </div>
+  </div>
+  <div class="cover-bot">
+    <span class="badge">• 클로드 코드 완벽 마스터 · 수업 자료</span>
+    <h1>한 번 만들고<br><em style="color:var(--orange);font-style:normal">계속 재사용</em>하기</h1>
+    <div class="sub">Claude Code <b>스킬과 플러그인</b> 완벽 가이드 &nbsp;·&nbsp; 공식 문서 기반 · 2026.07</div>
+  </div>
+</section>
+
+<!-- ═══════════ 02 · WHY ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">02</div>
+  <div class="body">
+    <div class="eyebrow">문제 인식 · WHY</div>
+    <h1>같은 지시를 <em>몇 번째 붙여넣고</em> 있나</h1>
+    <div class="lead">배포 절차, 커밋 규칙, 리뷰 체크리스트… 매번 같은 문단을 다시 친다. 그렇다고 <b>CLAUDE.md에 넣자니 매 세션 고정비</b>가 된다. 스킬은 정확히 이 사이를 메운다.</div>
+    <div class="vs">
+      <div class="vsbox was">
+        <div class="k">지금까지 · 매번 다시 친다</div>
+        <div class="t">붙여넣기 또는<br>CLAUDE.md 비대화</div>
+        <div class="d">붙여넣으면 매번 손이 가고, CLAUDE.md에 넣으면 <b style="color:#F0B49B">쓰지도 않는데 매 세션 로딩</b>된다. 팀에 공유하려면 또 복사다.</div>
+      </div>
+      <div class="vsarr">→</div>
+      <div class="vsbox now">
+        <div class="k">스킬 · 필요할 때만 열린다</div>
+        <div class="t">SKILL.md 한 장<br>→ 자동 또는 <code style="font-family:var(--mono);font-size:14px">/이름</code></div>
+        <div class="d">본문은 <b style="color:#CFE0FF">쓸 때만 로딩</b>된다. 그래서 긴 참고 자료를 넣어도 안 쓰면 공짜에 가깝다.</div>
+      </div>
+    </div>
+    <div class="note">공식 문서의 판단 기준 — <b>같은 지시를 반복해서 붙여넣고 있거나</b>, <b>CLAUDE.md의 한 섹션이 '사실'이 아니라 '절차'로 자라났다면</b> 그때가 스킬로 옮길 때다.</div>
+  </div>
+  <div class="takeaway">두 번 붙여넣었다면 <b>스킬로 만들 때</b>다</div>
+</section>
+
+<!-- ═══════════ 03 · WHAT ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">03</div>
+  <div class="body">
+    <div class="eyebrow">개념 정의 · WHAT</div>
+    <h1>스킬은 <em>폴더 하나</em>가 전부다</h1>
+    <div class="cards">
+      <div class="card"><div class="chip b">1</div><div>
+        <h3>SKILL.md 하나면 성립한다</h3>
+        <p>폴더 이름이 곧 명령어가 된다. <code>.claude/skills/deploy/SKILL.md</code> 를 만들면 그 순간 <b style="color:#D9D9DE"><code>/deploy</code></b> 가 생긴다.</p>
+      </div></div>
+      <div class="card"><div class="chip g">2</div><div>
+        <h3>내가 부르거나 Claude가 알아서 부른다</h3>
+        <p><code>/이름</code> 으로 직접 부를 수도 있고, <b style="color:#D9D9DE">description을 보고 Claude가 판단해</b> 자동으로 꺼내 쓸 수도 있다.</p>
+      </div></div>
+      <div class="card"><div class="chip p">3</div><div>
+        <h3>파일을 곁들일 수 있다</h3>
+        <p>템플릿, 예시, 참고 문서, 실행 스크립트를 같은 폴더에 둔다. <b style="color:#D9D9DE">필요할 때만</b> 읽히므로 컨텍스트가 새지 않는다.</p>
+      </div></div>
+      <div class="card"><div class="chip a">4</div><div>
+        <h3>표준을 따르는 개방 포맷이다</h3>
+        <p><b style="color:#D9D9DE">Agent Skills 개방 표준</b>을 따라 다른 AI 도구에서도 통한다. Claude Code는 여기에 호출 제어·서브에이전트 실행 등을 얹었다.</p>
+      </div></div>
+    </div>
+    <div class="note"><b style="color:#FF8A57">중요한 변화</b> — <b>커스텀 명령(<code>.claude/commands/</code>)은 스킬로 통합됐다</b>. 기존 파일은 그대로 동작하지만, 새로 만든다면 스킬 쪽이 폴더·프론트매터·자동 호출을 쓸 수 있어 유리하다.</div>
+  </div>
+  <div class="takeaway">폴더를 만드는 순간 <b>명령어가 생긴다</b></div>
+</section>
+
+<!-- ═══════════ 04 · 3층 로딩 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">04</div>
+  <div class="body">
+    <div class="eyebrow">핵심 원리 · PROGRESSIVE DISCLOSURE</div>
+    <h1>스킬이 가벼운 이유 — <em>3층으로 나눠 연다</em></h1>
+    <div class="layer">
+      <div class="lv on">1층</div>
+      <div class="ld">
+        <h3>메타데이터 — <code>name</code> · <code>description</code></h3>
+        <p><b>항상 로딩된다.</b> Claude는 이 한 줄만 보고 "이 스킬을 꺼낼지" 판단한다. 그래서 <b>description이 스킬의 성패를 가른다</b>.</p>
+      </div>
+      <div class="lw"><div class="t">상시 · 아주 작음</div><div class="bb" style="width:22px;background:var(--orange)"></div></div>
+    </div>
+    <div class="layer">
+      <div class="lv on">2층</div>
+      <div class="ld">
+        <h3>SKILL.md 본문 — 실제 지시문</h3>
+        <p><b>호출될 때만 로딩된다.</b> 절차·규칙·예시가 여기 들어간다. 단, 한 번 열리면 <b>세션 내내 남는다</b>(9번 슬라이드).</p>
+      </div>
+      <div class="lw"><div class="t">호출 시 · 중간</div><div class="bb" style="width:88px;background:#6A9BCC"></div></div>
+    </div>
+    <div class="layer" style="margin-bottom:0">
+      <div class="lv">3층</div>
+      <div class="ld">
+        <h3>참고 파일 · 스크립트 — <code>reference.md</code> <code>scripts/</code></h3>
+        <p><b>실제로 필요할 때만.</b> 스크립트는 아예 <b>실행만 되고 내용은 안 읽힌다</b> — 출력만 토큰을 쓴다. 여기가 용량을 마음껏 써도 되는 곳이다.</p>
+      </div>
+      <div class="lw"><div class="t">필요 시 · 얼마든지</div><div class="bb" style="width:150px;background:#4A9B8E"></div></div>
+    </div>
+    <div class="note">이 구조 덕분에 <b>스킬을 많이 만들어도 부담이 적다</b> — 안 쓰는 스킬은 설명 한 줄만 자리를 차지한다. 반대로 <b>SKILL.md 본문에 참고 자료를 몰아넣으면</b> 이 장점이 사라진다. 공식 권장은 <b style="color:#D9D9DE">본문 500줄 이내</b>.</div>
+  </div>
+  <div class="takeaway">무거운 건 <b>3층으로 내려보내라</b></div>
+</section>
+
+<!-- ═══════════ 05 · SKILL.md 해부 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">05</div>
+  <div class="body">
+    <div class="eyebrow">파일 해부 · ANATOMY</div>
+    <h1>SKILL.md는 <em>두 부분</em>뿐이다</h1>
+    <div class="cols-64">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">~/.claude/skills/summarize-changes/SKILL.md</span><span class="tag2">EXAMPLE</span></div>
+        <pre><span class="c">---</span>                              <span class="c">← 프론트매터 시작</span>
+<span class="k">description</span>: 커밋 안 된 변경을 요약하고
+  위험한 부분을 표시한다. 무엇이 바뀌었는지
+  묻거나 커밋 메시지를 원할 때 사용.
+<span class="c">---</span>
+
+<span class="k">## 현재 변경사항</span>
+
+!<span class="s">`git diff HEAD`</span>          <span class="c">← 실행 결과가 꽂힌다</span>
+
+<span class="k">## 지시</span>
+
+위 변경을 2~3줄로 요약하고, 누락된 예외 처리나
+하드코딩된 값 같은 위험 요소를 나열해라.</pre>
+      </div>
+      <div>
+        <div class="cards" style="gap:10px">
+          <div class="card" style="padding:13px 18px"><div class="chip b">1</div><div>
+            <h3 style="font-size:16px">프론트매터 — 언제 쓸지</h3>
+            <p style="font-size:13px"><code>---</code> 사이의 YAML. <b style="color:#D9D9DE">전부 선택 항목</b>이지만 <code>description</code>만은 넣자. 이게 없으면 Claude가 스킬을 못 찾는다.</p>
+          </div></div>
+          <div class="card" style="padding:13px 18px"><div class="chip g">2</div><div>
+            <h3 style="font-size:16px">본문 — 무엇을 할지</h3>
+            <p style="font-size:13px">그냥 마크다운이다. 절차·규칙·예시를 <b style="color:#D9D9DE">동료에게 설명하듯</b> 쓰면 된다.</p>
+          </div></div>
+        </div>
+        <div class="note"><b>description 쓰는 요령</b> — "무엇을 하는지 + <b style="color:#D9D9DE">언제 쓰는지</b>"를 같이 적고, <b>사용자가 실제로 말할 법한 단어</b>를 넣는다. 이게 자동 호출의 적중률을 정한다.</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">본문보다 <b>description이 먼저</b>다</div>
+</section>
+
+<!-- ═══════════ 06 · 저장 위치 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">06</div>
+  <div class="body">
+    <div class="eyebrow">저장 위치 · SCOPE</div>
+    <h1>어디에 두느냐가 <em>누가 쓰느냐</em>를 정한다</h1>
+    <table class="tbl tight">
+      <tr><th style="width:150px">범위</th><th style="width:390px">경로</th><th>적용 대상</th></tr>
+      <tr><td><b>조직</b></td><td class="mut">관리 설정으로 배포</td><td class="mut">조직 전체 구성원 <b style="color:#D9D9DE">· 우선순위 1위</b></td></tr>
+      <tr><td><b>개인</b></td><td class="mono">~/.claude/skills/&lt;이름&gt;/SKILL.md</td><td class="mut">내 모든 프로젝트</td></tr>
+      <tr><td><b>프로젝트</b></td><td class="mono">.claude/skills/&lt;이름&gt;/SKILL.md</td><td class="mut">이 저장소 <b style="color:#D9D9DE">· 커밋하면 팀 공유</b></td></tr>
+      <tr><td><b>플러그인</b></td><td class="mono">&lt;플러그인&gt;/skills/&lt;이름&gt;/SKILL.md</td><td class="mut">플러그인이 켜진 곳 <b style="color:#D9D9DE">· 이름 충돌 없음</b></td></tr>
+    </table>
+    <div class="cols" style="margin-top:15px">
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">⚖️</span><h3>같은 이름이 겹치면</h3></div>
+        <p style="font-size:13.4px"><b>조직 &gt; 개인 &gt; 프로젝트</b> 순으로 이긴다. 어느 단계든 <b style="color:#D9D9DE">내장 스킬을 덮어쓸 수 있다</b> — 프로젝트에 <code>code-review</code> 스킬을 두면 내장 <code>/code-review</code>를 대체한다.</p>
+      </div>
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">🔄</span><h3>저장하면 바로 반영된다</h3></div>
+        <p style="font-size:13.4px">Claude Code가 스킬 폴더를 <b>실시간 감시</b>한다. 추가·수정·삭제가 <b style="color:#D9D9DE">재시작 없이</b> 적용된다. 단 <b>없던 최상위 폴더를 새로 만든 경우</b>는 재시작이 필요하다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">팀에 주려면 <b>프로젝트에 커밋</b>하라</div>
+</section>
+
+<!-- ═══════════ 07 · frontmatter ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">07</div>
+  <div class="body">
+    <div class="eyebrow">설정 · FRONTMATTER</div>
+    <h1>알아두면 <em>확 달라지는</em> 필드들</h1>
+    <table class="tbl tight">
+      <tr><th style="width:250px">필드</th><th>무엇을 하나</th></tr>
+      <tr><td class="mono" style="color:#FF8A57">description</td><td class="mut">무엇을 하고 <b style="color:#D9D9DE">언제 쓰는지</b>. 자동 호출의 기준 — 사실상 필수</td></tr>
+      <tr><td class="mono">when_to_use</td><td class="mut">트리거가 될 문구·예시 요청을 추가로 적는다</td></tr>
+      <tr><td class="mono">disable-model-invocation</td><td class="mut"><b style="color:#D9D9DE">Claude가 못 부르게</b> 막는다 — 배포·커밋처럼 내가 시점을 정할 것</td></tr>
+      <tr><td class="mono">user-invocable</td><td class="mut"><code>false</code>면 <code>/</code> 메뉴에서 숨긴다 — 배경지식용 스킬</td></tr>
+      <tr><td class="mono">allowed-tools</td><td class="mut">이 스킬이 도는 턴 동안 <b style="color:#D9D9DE">승인 없이 쓸 도구</b>를 미리 허용</td></tr>
+      <tr><td class="mono">context: fork</td><td class="mut"><b style="color:#D9D9DE">별도 서브에이전트</b>에서 실행한다 (11번 슬라이드)</td></tr>
+      <tr><td class="mono">paths</td><td class="mut">해당 패턴의 파일을 다룰 때만 자동 활성화</td></tr>
+      <tr><td class="mono">model · effort</td><td class="mut">이 스킬이 도는 동안 모델·추론 강도를 바꾼다</td></tr>
+    </table>
+    <div class="note">이 밖에 <span class="pill">argument-hint</span><span class="pill">arguments</span><span class="pill">disallowed-tools</span><span class="pill">agent</span><span class="pill">hooks</span><span class="pill">shell</span> 등이 있다. <b>전부 선택 항목</b>이니 <code>description</code> 하나로 시작하면 된다.</div>
+  </div>
+  <div class="takeaway">필수는 없다 — <b>필요할 때 하나씩</b></div>
+</section>
+
+<!-- ═══════════ 08 · 호출 제어 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">08</div>
+  <div class="body">
+    <div class="eyebrow">호출 제어 · WHO INVOKES</div>
+    <h1><em>누가</em> 이 스킬을 부를 수 있나</h1>
+    <table class="tbl tight" style="margin-bottom:14px">
+      <tr><th style="width:290px">프론트매터</th><th style="width:120px">내가 호출</th><th style="width:130px">Claude가 호출</th><th>설명이 컨텍스트에</th></tr>
+      <tr><td class="mut">(기본값)</td><td><b style="color:#3ACB82">가능</b></td><td><b style="color:#3ACB82">가능</b></td><td class="mut">항상 올라간다</td></tr>
+      <tr><td class="mono">disable-model-invocation: true</td><td><b style="color:#3ACB82">가능</b></td><td><b style="color:#E14B3C">불가</b></td><td class="mut"><b style="color:#D9D9DE">올라가지 않는다</b> — 컨텍스트 0</td></tr>
+      <tr><td class="mono">user-invocable: false</td><td><b style="color:#E14B3C">불가</b></td><td><b style="color:#3ACB82">가능</b></td><td class="mut">항상 올라간다</td></tr>
+    </table>
+    <div class="cols">
+      <div class="gcard warn">
+        <div class="gh"><span class="em">🚫</span><h3>Claude가 부르면 곤란한 것</h3></div>
+        <div class="meta">disable-model-invocation: true</div>
+        <p><b>부작용이 있는 작업.</b> 커밋·배포·메시지 발송처럼 <b style="color:#D9D9DE">시점을 내가 정해야 하는 일</b>. 코드가 그럴듯해 보인다고 Claude가 배포를 결정하면 곤란하다.</p>
+        <ul>
+          <li>덤으로 <b>컨텍스트도 아낀다</b> — 설명조차 안 올라간다</li>
+        </ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">📖</span><h3>내가 부를 일이 없는 것</h3></div>
+        <div class="meta">user-invocable: false</div>
+        <p><b>배경지식.</b> "이 레거시 시스템은 이렇게 동작한다" 같은 내용은 Claude가 알아야 하지만, 내가 <code>/legacy-context</code>를 칠 일은 없다.</p>
+        <ul>
+          <li>메뉴만 가릴 뿐 <b>Claude의 접근은 그대로</b></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">부작용이 있으면 <b>Claude에게서 뺏어라</b></div>
+</section>
+
+<!-- ═══════════ 09 · 수명주기 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">09</div>
+  <div class="body">
+    <div class="eyebrow">놓치기 쉬운 것 · LIFECYCLE</div>
+    <h1>한 번 열린 스킬은 <em>세션 내내 남는다</em></h1>
+    <div class="lead">스킬을 호출하면 그 내용이 <b>대화에 메시지 하나로 들어와 끝까지 머문다</b>. Claude는 이후 턴에서 파일을 다시 읽지 않는다. 여기서 두 가지가 따라온다.</div>
+    <div class="cols">
+      <div class="gcard warn">
+        <div class="gh"><span class="em">💰</span><h3>본문의 모든 줄이 <b>반복 비용</b></h3></div>
+        <p style="font-size:13.5px">한 번 로딩되면 매 턴 다시 읽힌다. 그래서 <b style="color:#D9D9DE">"왜 이렇게 하는지"를 길게 설명하지 말고 "무엇을 하라"만</b> 적는 게 좋다. CLAUDE.md에 적용하는 간결함 기준을 그대로 쓰면 된다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">📌</span><h3>일회성 단계가 아니라 <b>상시 지침</b>으로</h3></div>
+        <p style="font-size:13.5px">작업 내내 지켜야 할 내용이라면 "먼저 ~하라"가 아니라 <b style="color:#D9D9DE">"항상 ~한다"</b>로 쓴다. 다시 읽히지 않으므로 한 번 쓴 문장이 계속 작동해야 한다.</p>
+      </div>
+    </div>
+    <div class="note" style="margin-top:14px"><b>압축될 때는?</b> 자동 압축이 일어나면 호출했던 스킬들을 요약 뒤에 <b>다시 붙여준다</b> — 스킬당 앞부분 5,000토큰까지, 전체 합계 25,000토큰 한도. 최근 것부터 채우므로 <b style="color:#FF8A57">한 세션에서 스킬을 많이 부르면 오래된 것은 통째로 빠진다</b>. 그래서 <b>중요한 지시는 SKILL.md 맨 앞</b>에 두는 게 안전하다.</div>
+  </div>
+  <div class="takeaway">스킬 본문은 <b>짧을수록 오래 산다</b></div>
+</section>
+
+<!-- ═══════════ 10 · 동적 주입 + 인자 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">10</div>
+  <div class="body">
+    <div class="eyebrow">고급 ① · 동적 컨텍스트</div>
+    <h1>Claude가 보기 <em>전에</em> 데이터를 꽂는다</h1>
+    <div class="cols">
+      <div>
+        <div class="pp">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">셸 출력을 그대로 심기</span><span class="tag2">SKILL.md</span></div>
+          <pre><span class="k">## PR 정보</span>
+- 변경 내용: !<span class="s">`gh pr diff`</span>
+- 리뷰 코멘트: !<span class="s">`gh pr view --comments`</span>
+
+<span class="k">## 지시</span>
+위 PR을 요약해라...</pre>
+        </div>
+        <div class="note">명령이 <b>먼저 실행</b>되고 그 출력이 자리를 대신한다. Claude가 실행하는 게 아니라 <b style="color:#D9D9DE">보내기 전 전처리</b>다 — 그래서 항상 최신 데이터로 시작한다.</div>
+      </div>
+      <div>
+        <div class="gcard" style="padding:15px 19px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🔤</span><h3>인자 받기</h3></div>
+          <p style="font-size:13.3px"><code>/fix-issue 123</code> 처럼 뒤에 붙인 값을 본문에서 쓴다.</p>
+          <ul>
+            <li><span class="mono" style="color:#FFC29E">$ARGUMENTS</span> — 전체 인자</li>
+            <li><span class="mono" style="color:#FFC29E">$0 · $1</span> — 순서별 인자</li>
+            <li><span class="mono" style="color:#FFC29E">${CLAUDE_SKILL_DIR}</span> — 스킬 폴더 경로</li>
+          </ul>
+        </div>
+        <div class="gcard" style="padding:15px 19px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🧩</span><h3>스킬 겹쳐 부르기</h3></div>
+          <p style="font-size:13.3px"><code>/write-tests /fix-issue 123</code> 처럼 <b style="color:#D9D9DE">여러 스킬을 한 번에</b> 불러올 수 있다. 뒤의 인자는 모두에게 전달된다.</p>
+        </div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:13px"><b style="color:#FF8A57">보안 참고</b> — 이 기능은 <b>스킬이 셸 명령을 실행</b>한다는 뜻이다. 조직 차원에서 막으려면 설정에 <code>"disableSkillShellExecution": true</code>. 남의 스킬을 받아 쓸 때 <b>먼저 열어봐야 하는 이유</b>이기도 하다.</div>
+  </div>
+  <div class="takeaway">묻지 말고 <b>미리 넣어줘라</b></div>
+</section>
+
+<!-- ═══════════ 11 · context fork ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">11</div>
+  <div class="body">
+    <div class="eyebrow">고급 ② · 서브에이전트 실행</div>
+    <h1><em>context: fork</em> — 남의 창에서 돌린다</h1>
+    <div class="cols-64">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">.claude/skills/deep-research/SKILL.md</span><span class="tag2">EXAMPLE</span></div>
+        <pre><span class="c">---</span>
+<span class="k">name</span>: deep-research
+<span class="k">description</span>: 주제를 깊게 조사한다
+<span class="k">context</span>: <span class="hl">fork</span>          <span class="c">← 별도 컨텍스트</span>
+<span class="k">agent</span>: <span class="hl">Explore</span>       <span class="c">← 읽기 전용 에이전트</span>
+<span class="c">---</span>
+
+$ARGUMENTS 를 철저히 조사해라:
+
+1. Glob·Grep으로 관련 파일을 찾는다
+2. 코드를 읽고 분석한다
+3. 파일 경로와 함께 요약한다</pre>
+      </div>
+      <div>
+        <div class="cards" style="gap:10px">
+          <div class="card" style="padding:13px 18px"><div class="chip b">1</div><div>
+            <h3 style="font-size:16px">본문이 곧 <b>과제</b>가 된다</h3>
+            <p style="font-size:13px">SKILL.md 내용이 서브에이전트의 프롬프트로 들어간다. 대량 파일 읽기가 <b style="color:#D9D9DE">내 창에 닿지 않는다</b>.</p>
+          </div></div>
+          <div class="card" style="padding:13px 18px"><div class="chip g">2</div><div>
+            <h3 style="font-size:16px">기본은 <b>백그라운드</b></h3>
+            <p style="font-size:13px">돌아가는 동안 나는 계속 일한다. 결과를 그 자리에서 받고 싶으면 <code>background: false</code>.</p>
+          </div></div>
+          <div class="card" style="padding:13px 18px"><div class="chip r">!</div><div>
+            <h3 style="font-size:16px">대화 이력을 <b>못 본다</b></h3>
+            <p style="font-size:13px">그래서 <b style="color:#D9D9DE">"과제"가 없는 스킬에는 쓰면 안 된다</b>. "이 API 규칙을 지켜라" 같은 지침만 있으면 할 일이 없어 빈손으로 돌아온다.</p>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">지침에는 쓰지 말고 <b>작업에만</b> 써라</div>
+</section>
+
+<!-- ═══════════ 12 · 내장 스킬 · 평가 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">12</div>
+  <div class="body">
+    <div class="eyebrow">이미 있는 것 · BUNDLED</div>
+    <h1>만들기 전에 <em>내장 스킬</em>부터 보자</h1>
+    <div class="lead">Claude Code에는 스킬이 기본 탑재돼 있다. 전부 <code>/</code> 를 눌러 볼 수 있고, 이름이 같은 스킬을 만들면 <b>내 것으로 덮어쓸 수 있다</b>.</div>
+    <div class="grid3">
+      <div class="gcard">
+        <div class="gh"><span class="em">🔧</span><h3>점검·리뷰</h3></div>
+        <div class="meta">/doctor · /code-review · /debug</div>
+        <p><code>/doctor</code>는 설치 상태와 <b>스킬 목록의 컨텍스트 비용</b>까지 알려준다. <code>/code-review</code>는 내가 부를 때만 돈다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">▶️</span><h3>실행·검증</h3></div>
+        <div class="meta">/run · /verify · /run-skill-generator</div>
+        <p>테스트가 아니라 <b>앱을 실제로 띄워서</b> 변경을 확인한다. 실행 절차가 복잡한 프로젝트라면 <code>/run-skill-generator</code>로 레시피를 기록해 두자.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🔁</span><h3>반복·일괄</h3></div>
+        <div class="meta">/batch · /loop · /claude-api</div>
+        <p>같은 작업을 여러 대상에 돌리거나 주기적으로 실행한다. 전부 끄려면 설정에 <code>disableBundledSkills</code>.</p>
+      </div>
+    </div>
+    <div class="note"><b>내 스킬이 잘 만들어졌는지 재보고 싶다면</b> — 공식 마켓플레이스의 <code>skill-creator</code> 플러그인이 평가 루프를 자동화한다. 테스트 케이스를 만들고, <b style="color:#D9D9DE">스킬을 켰을 때와 껐을 때</b>를 비교해 통과율·토큰·시간을 표로 뽑아준다. 스킬이 엉뚱한 요청에 튀어나오면 <b>description을 다듬어 제안</b>까지 해준다.</div>
+  </div>
+  <div class="takeaway">있는 걸 먼저 쓰고, <b>없는 것만 만들어라</b></div>
+</section>
+
+<!-- ═══════════ 13 · 브리지 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">13</div>
+  <div class="body">
+    <div class="eyebrow">전환 · WHY PLUGINS</div>
+    <h1>스킬이 쌓이면 <em>배포 문제</em>가 생긴다</h1>
+    <div class="lead">잘 만든 스킬 다섯 개, 서브에이전트 둘, 훅 하나, MCP 서버 하나. 이걸 <b>새 팀원에게 어떻게 넘길까?</b> 파일을 복사하고, 설정을 열어 훅을 붙이고, MCP를 등록하고… 그리고 버전이 올라가면 다시 반복이다.</div>
+    <div class="vs">
+      <div class="vsbox was">
+        <div class="k">낱개로 나눌 때</div>
+        <div class="t">"이 폴더 복사하고<br>설정에 이것도 붙여넣으세요"</div>
+        <div class="d">단계를 빼먹는 사람이 반드시 나온다. 업데이트는 각자 알아서. <b style="color:#F0B49B">위키에 적어두면 곧 낡는다</b>.</div>
+      </div>
+      <div class="vsarr">→</div>
+      <div class="vsbox now">
+        <div class="k">플러그인으로 묶을 때</div>
+        <div class="t">/plugin install<br>팀-세팅@우리회사</div>
+        <div class="d">스킬·에이전트·훅·MCP가 <b style="color:#CFE0FF">한 번에</b> 들어간다. 버전이 붙고, 업데이트가 자동으로 내려온다.</div>
+      </div>
+    </div>
+    <div class="note">그래서 순서는 이렇게 잡는 게 좋다 — <b><code>.claude/</code>에서 빠르게 만들어 보고</b>, 쓸 만해지면 <b>플러그인으로 묶는다</b>. 처음부터 플러그인으로 시작하면 반복 주기가 느려진다.</div>
+  </div>
+  <div class="takeaway">혼자 쓸 땐 폴더, <b>나눌 땐 플러그인</b></div>
+</section>
+
+<!-- ═══════════ 14 · 플러그인 구조 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">14</div>
+  <div class="body">
+    <div class="eyebrow">플러그인 해부 · STRUCTURE</div>
+    <h1>플러그인은 <em>정해진 폴더 이름</em>이 전부다</h1>
+    <div class="cols-64">
+      <div class="tree">my-plugin/
+├── <b>.claude-plugin/</b>
+│   └── <u>plugin.json</u>      <i>← 이름·버전 (여기엔 이것만!)</i>
+├── <b>skills/</b>              <i>← 스킬</i>
+│   └── code-review/SKILL.md
+├── <b>agents/</b>              <i>← 서브에이전트</i>
+├── <b>hooks/</b>hooks.json     <i>← 훅</i>
+├── <b>.mcp.json</b>            <i>← MCP 서버</i>
+├── <b>.lsp.json</b>            <i>← 코드 인텔리전스</i>
+├── <b>monitors/</b>            <i>← 백그라운드 감시</i>
+└── <b>bin/</b>                 <i>← 실행 파일 (PATH에 추가)</i></div>
+      <div>
+        <div class="gcard warn" style="padding:15px 19px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">⚠️</span><h3>가장 흔한 실수</h3></div>
+          <p style="font-size:13.4px"><code>skills/</code> <code>agents/</code> <code>hooks/</code> 를 <b style="color:#D9D9DE"><code>.claude-plugin/</code> 안에 넣으면 안 된다</b>. 그 폴더에는 <code>plugin.json</code>만 들어간다. 나머지는 전부 <b>플러그인 루트</b>에.</p>
+        </div>
+        <div class="pp">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">.claude-plugin/plugin.json</span><span class="tag2">MANIFEST</span></div>
+          <pre style="font-size:12.3px;line-height:1.75">{
+  <span class="k">"name"</span>: <span class="s">"my-plugin"</span>,   <span class="c">← 네임스페이스</span>
+  <span class="k">"description"</span>: <span class="s">"..."</span>,
+  <span class="k">"version"</span>: <span class="s">"1.0.0"</span>
+}</pre>
+        </div>
+      </div>
+    </div>
+    <div class="note"><b>이름이 곧 네임스페이스</b>다 — <code>my-plugin</code>의 <code>hello</code> 스킬은 <code>/my-plugin:hello</code>가 된다. 덕분에 <b style="color:#D9D9DE">두 플러그인이 똑같이 <code>deploy</code>를 가져도 충돌하지 않는다</b>. <code>version</code>을 적지 않으면 커밋마다 새 버전으로 취급된다.</div>
+  </div>
+  <div class="takeaway">폴더 이름만 맞추면 <b>알아서 인식된다</b></div>
+</section>
+
+<!-- ═══════════ 15 · 마켓플레이스 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">15</div>
+  <div class="body">
+    <div class="eyebrow">배포 · MARKETPLACE</div>
+    <h1>마켓플레이스는 <em>앱스토어</em>와 같다</h1>
+    <div class="lead">스토어를 추가한다고 앱이 깔리지는 않는다. <b>① 카탈로그를 등록하고 → ② 원하는 것만 설치</b>하는 2단계다.</div>
+    <div class="cols">
+      <div class="term">
+        <div class="tb"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tt">Claude Code</span></div>
+        <pre style="font-size:12.6px;line-height:1.85"><span class="c"># ① 공식 마켓은 이미 등록돼 있다</span>
+<span class="p">❯</span> <span class="hl">/plugin install github@claude-plugins-official</span>
+
+<span class="c"># ② 다른 카탈로그를 더하려면</span>
+<span class="p">❯</span> <span class="hl">/plugin marketplace add 회사/claude-plugins</span>
+<span class="p">❯</span> <span class="hl">/plugin install 팀-세팅@회사-claude-plugins</span>
+
+<span class="c"># ③ 설치 후 현재 세션에 반영</span>
+<span class="p">❯</span> <span class="hl">/reload-plugins</span>
+<span class="ok">  ✓</span> <span class="dm">플러그인 1 · 스킬 4 · 훅 1 · MCP 1</span></pre>
+      </div>
+      <div>
+        <div class="gcard" style="padding:15px 19px;margin-bottom:10px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🗂️</span><h3><code>/plugin</code> 관리 화면 · 탭 4개</h3></div>
+          <p style="font-size:13.3px"><b>Discover</b> 둘러보기 · <b>Installed</b> 켜고 끄기 · <b>Marketplaces</b> 카탈로그 관리 · <b>Errors</b> 로딩 오류. 설치 전 상세 화면에서 <b style="color:#D9D9DE">컨텍스트 비용</b>과 <b style="color:#D9D9DE">설치될 항목 목록</b>을 미리 볼 수 있다.</p>
+        </div>
+        <div class="gcard" style="padding:15px 19px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🎯</span><h3>설치 범위 3가지</h3></div>
+          <ul>
+            <li><b>User</b> — 내 모든 프로젝트에서</li>
+            <li><b>Project</b> — 이 저장소의 <b>모든 협업자</b>에게</li>
+            <li><b>Local</b> — 이 저장소에서 나만</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="note">카탈로그는 GitHub <code>소유자/저장소</code>·Git URL·로컬 경로 어느 쪽이든 된다. 팀이라면 <code>.claude/settings.json</code>의 <code>extraKnownMarketplaces</code>에 적어두면 <b>팀원에게 설치를 안내</b>한다.</div>
+  </div>
+  <div class="takeaway">카탈로그 등록과 설치는 <b>별개의 단계</b>다</div>
+</section>
+
+<!-- ═══════════ 16 · 공식 카탈로그 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">16</div>
+  <div class="body">
+    <div class="eyebrow">뭐가 있나 · OFFICIAL CATALOG</div>
+    <h1>만들기 전에 <em>이미 있는지</em> 보자</h1>
+    <div class="grid2">
+      <div class="gcard">
+        <div class="gh"><span class="em">🧠</span><h3>코드 인텔리전스 (LSP)</h3></div>
+        <div class="meta">typescript-lsp · pyright-lsp · rust-analyzer-lsp …</div>
+        <p><b>가장 체감이 큰 부류.</b> 파일을 고칠 때마다 언어 서버가 <b style="color:#D9D9DE">타입 오류를 즉시 되돌려준다</b> — Claude가 스스로 알아채고 같은 턴에 고친다. 해당 언어 서버 <b style="color:#D9D9DE">바이너리가 설치돼 있어야</b> 한다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🔌</span><h3>외부 서비스 연동 (MCP)</h3></div>
+        <div class="meta">github · linear · notion · figma · slack · sentry …</div>
+        <p>MCP 서버가 <b>미리 설정된 채로</b> 들어온다. 직접 등록할 필요 없이 설치만 하면 연결된다. 다만 붙일수록 컨텍스트 고정비가 느니 <b style="color:#D9D9DE">쓰는 것만</b> 남기자.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🛡️</span><h3>보안 · 워크플로</h3></div>
+        <div class="meta">security-guidance · commit-commands · plugin-dev</div>
+        <p><code>security-guidance</code>는 Claude의 변경을 <b>취약점 관점에서 검토</b>하고 같은 세션에서 고치게 한다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🎓</span><h3>출력 스타일</h3></div>
+        <div class="meta">explanatory-output-style · learning-output-style</div>
+        <p>메타 프롬프트 강의에서 다룬 <b>학습 모드</b>가 플러그인으로도 배포된다.</p>
+      </div>
+    </div>
+    <div class="note">공식 마켓(<code>claude-plugins-official</code>)은 <b>기본 등록</b>돼 있다. 커뮤니티 마켓(<code>claude-community</code>)은 안전 심사를 통과한 서드파티용이며 <b>직접 추가</b>해야 한다. 카탈로그는 <b>claude.com/plugins</b> 에서도 볼 수 있다.</div>
+  </div>
+  <div class="takeaway">바퀴를 다시 만들기 전에 <b>Discover 탭</b>을</div>
+</section>
+
+<!-- ═══════════ 17 · 만들고 테스트 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">17</div>
+  <div class="body">
+    <div class="eyebrow">직접 만들기 · BUILD &amp; TEST</div>
+    <h1>설치하지 않고 <em>바로 시험</em>해 본다</h1>
+    <div class="cols">
+      <div class="term">
+        <div class="tb"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tt">터미널</span></div>
+        <pre style="font-size:12.6px;line-height:1.85"><span class="c"># 뼈대 만들기 (개인 스킬 폴더에)</span>
+<span class="p">$</span> <span class="hl">claude plugin init my-tool</span>
+<span class="dm">  ~/.claude/skills/my-tool/ 생성됨</span>
+<span class="dm">  다음 세션부터 my-tool@skills-dir 로 로딩</span>
+
+<span class="c"># 마켓 없이 로컬 폴더 그대로 띄우기</span>
+<span class="p">$</span> <span class="hl">claude --plugin-dir ./my-plugin</span>
+
+<span class="c"># 고치는 중에는 재시작 없이</span>
+<span class="p">❯</span> <span class="hl">/reload-plugins</span>
+
+<span class="c"># 배포 전 형식 검사</span>
+<span class="p">$</span> <span class="hl">claude plugin validate</span></pre>
+      </div>
+      <div>
+        <div class="cards" style="gap:10px">
+          <div class="card" style="padding:13px 18px"><div class="chip b">1</div><div>
+            <h3 style="font-size:16px">기존 <code>.claude/</code>를 옮기려면</h3>
+            <p style="font-size:13px">폴더를 <b style="color:#D9D9DE">그대로 복사</b>하면 된다. 훅만 <code>settings.json</code>에서 <code>hooks/hooks.json</code>으로 옮기는데, <b>형식은 똑같다</b>.</p>
+          </div></div>
+          <div class="card" style="padding:13px 18px"><div class="chip g">2</div><div>
+            <h3 style="font-size:16px">옮긴 뒤 원본은 지운다</h3>
+            <p style="font-size:13px">에이전트는 <code>.claude/agents/</code> 쪽이 <b style="color:#D9D9DE">플러그인을 덮어써서</b> 안 바뀐 것처럼 보인다. 스킬은 이름이 달라 둘 다 남는다.</p>
+          </div></div>
+          <div class="card" style="padding:13px 18px"><div class="chip o">3</div><div>
+            <h3 style="font-size:16px">나눌 준비가 되면</h3>
+            <p style="font-size:13px">README를 붙이고 <code>marketplace.json</code>을 만들어 <b style="color:#D9D9DE">GitHub에 올리면</b> 그게 마켓플레이스다. 비공개 저장소도 된다.</p>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">설치 없이 <b><code style="font-family:var(--mono);font-size:15px">--plugin-dir</code></b> 로 먼저 돌려보라</div>
+</section>
+
+<!-- ═══════════ 18 · 선택 가이드 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">18</div>
+  <div class="body">
+    <div class="eyebrow">선택 가이드 · WHICH ONE</div>
+    <h1>지금 상황엔 <em>무엇을</em> 써야 하나</h1>
+    <table class="tbl tight">
+      <tr><th style="width:360px">이런 상황이면</th><th style="width:200px">이걸 쓴다</th><th>왜</th></tr>
+      <tr><td class="mut">항상 참인 프로젝트 사실·관례</td><td><b style="color:#6A9BCC">CLAUDE.md</b></td><td class="mut">늘 필요하니 매번 로딩돼도 괜찮다</td></tr>
+      <tr><td class="mut">가끔 쓰는 긴 절차·체크리스트</td><td><b style="color:var(--orange)">스킬</b></td><td class="mut">쓸 때만 열려 평소엔 공짜에 가깝다</td></tr>
+      <tr><td class="mut">반드시 실행돼야 하는 규칙</td><td><b style="color:#B8860B">훅</b></td><td class="mut">모델의 판단이 아니라 코드로 강제한다</td></tr>
+      <tr><td class="mut">대량 탐색·격리된 조사</td><td><b style="color:#9B7BC4">서브에이전트</b></td><td class="mut">별도 컨텍스트에서 돌고 요약만 온다</td></tr>
+      <tr><td class="mut">외부 서비스와 연결</td><td><b style="color:#4A9B8E">MCP</b></td><td class="mut">도구 자체를 늘리는 일이다</td></tr>
+      <tr><td class="mut">위 여러 개를 <b style="color:#D9D9DE">함께 배포</b></td><td><b style="color:var(--orange)">플러그인</b></td><td class="mut">버전과 설치 단위가 필요해진다</td></tr>
+    </table>
+    <div class="cols" style="margin-top:15px">
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">📁</span><h3>낱개로 두는 게 나을 때</h3></div>
+        <p style="font-size:13.4px">개인 작업 흐름, 이 프로젝트 전용, 아직 실험 중. 이름이 <code>/deploy</code>처럼 <b style="color:#D9D9DE">짧아서 치기 편하다</b>.</p>
+      </div>
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">📦</span><h3>플러그인으로 묶을 때</h3></div>
+        <p style="font-size:13.4px">팀·커뮤니티에 공유, 여러 프로젝트에서 재사용, 버전 관리가 필요할 때. 대신 이름이 <code>/plugin:deploy</code>로 <b style="color:#D9D9DE">길어진다</b>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">먼저 <b>낱개로</b> 만들고, 나눌 때 <b>묶어라</b></div>
+</section>
+
+<!-- ═══════════ 19 · 보안과 함정 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">19</div>
+  <div class="body">
+    <div class="eyebrow">보안과 함정 · PITFALLS</div>
+    <h1>설치는 <em>코드 실행</em>과 같다</h1>
+    <div class="grid3">
+      <div class="gcard warn">
+        <div class="gh"><span class="em">🔐</span><h3>내 권한으로 돌아간다</h3></div>
+        <p>공식 문서의 경고 그대로 — 플러그인과 마켓플레이스는 <b style="color:#D9D9DE">내 사용자 권한으로 임의의 코드를 실행</b>할 수 있다. Anthropic은 서드파티 내용물을 검증하지 않는다. <b>믿는 출처만</b>.</p>
+      </div>
+      <div class="gcard warn">
+        <div class="gh"><span class="em">📥</span><h3>남의 스킬도 읽어보고</h3></div>
+        <p>스킬은 <code>allowed-tools</code>로 <b style="color:#D9D9DE">스스로에게 도구 권한을 줄 수 있고</b>, 셸 명령도 심을 수 있다. 저장소를 신뢰하기 전에 프로젝트 스킬을 훑어보자.</p>
+      </div>
+      <div class="gcard warn">
+        <div class="gh"><span class="em">🗑️</span><h3>마켓 제거 = 플러그인 제거</h3></div>
+        <p>마켓플레이스를 지우면 <b style="color:#D9D9DE">거기서 설치한 플러그인이 전부 사라진다</b>. 정리하기 전에 무엇이 딸려 나가는지 확인하자.</p>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:13px">
+      <div class="gcard">
+        <div class="gh"><span class="em">📉</span><h3>설명이 잘려나간다</h3></div>
+        <p>스킬이 많으면 목록 예산을 넘겨 <b style="color:#D9D9DE">덜 쓰는 스킬부터 설명이 삭제</b>된다. <code>/doctor</code>로 비용을 확인하자.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🧹</span><h3>안 쓰는 건 정리</h3></div>
+        <p><code>/plugin</code> Installed 탭이 <b style="color:#D9D9DE">오래 안 쓴 플러그인</b>을 따로 모아 보여준다. 고정비만 내고 있는 것들이다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🎯</span><h3>안 튀어나오면 description</h3></div>
+        <p>스킬이 안 불리면 <b style="color:#D9D9DE">내가 쓸 법한 단어</b>가 설명에 있는지 보자. 반대로 너무 자주 나오면 더 구체적으로.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">붙이기 전에 <b>열어보라</b></div>
+</section>
+
+<!-- ═══════════ 20 · 핵심 정리 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">20</div>
+  <div class="body">
+    <div class="eyebrow">핵심 정리 · RECAP</div>
+    <h1>오늘 <em>네 가지</em>만 가져가자</h1>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="sum"><div class="n">01</div><div class="k"><em>구조</em></div><div class="d">스킬은 폴더 하나. <b style="color:#D9D9DE">3층으로 나눠 열리므로</b> 무거운 건 참고 파일·스크립트로 내려보낸다.</div></div>
+      <div class="sum"><div class="n">02</div><div class="k"><em>호출</em></div><div class="d"><code>description</code>이 자동 호출을 정한다. 부작용이 있는 건 <code>disable-model-invocation</code>으로 <b style="color:#D9D9DE">Claude에게서 뺏는다</b>.</div></div>
+      <div class="sum"><div class="n">03</div><div class="k"><em>비용</em></div><div class="d">한 번 열린 본문은 세션 내내 남는다. <b style="color:#D9D9DE">본문은 짧게, 중요한 건 맨 앞에</b>.</div></div>
+      <div class="sum"><div class="n">04</div><div class="k"><em>배포</em></div><div class="d">플러그인은 포장, 마켓플레이스는 유통. <b style="color:#D9D9DE">낱개로 만들고 나눌 때 묶는다</b> — 그리고 설치는 곧 코드 실행이다.</div></div>
+    </div>
+  </div>
+  <div class="takeaway">한 번 만든 건 <b>다시 만들지 않는다</b></div>
+</section>
+
+<!-- ═══════════ 21 · 실습 미션 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="pagenum">21</div>
+  <div class="body">
+    <div class="eyebrow">실습 · MISSION</div>
+    <h1>지금 <em>30분</em>이면 다 해본다</h1>
+    <div class="cards">
+      <div class="card"><div class="chip b">1</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>첫 스킬 만들기</h3><span class="time">10분</span></div>
+        <p><code>~/.claude/skills/summarize-changes/SKILL.md</code>를 만들고 <b style="color:#D9D9DE">description + <code>!`git diff HEAD`</code></b> 한 줄을 넣자. <code>/summarize-changes</code>로 직접 부르고, <b style="color:#D9D9DE">"내가 뭘 바꿨지?"</b>라고 물어 자동으로도 불리는지 확인.</p>
+      </div></div>
+      <div class="card"><div class="chip g">2</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>호출 제어 체험하기</h3><span class="time">10분</span></div>
+        <p>배포용 스킬을 하나 만들고 <code>disable-model-invocation: true</code>를 넣자. <b style="color:#D9D9DE">"배포해줘"라고 말해도 Claude가 못 부르는지</b> 확인하고, <code>/context</code>로 설명조차 안 올라간 것도 확인.</p>
+      </div></div>
+      <div class="card"><div class="chip o">3</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>플러그인으로 묶어보기</h3><span class="time">10분</span></div>
+        <p><code>claude plugin init my-tool</code>로 뼈대를 만들고 방금 만든 스킬을 <code>skills/</code>에 옮기자. <code>claude --plugin-dir</code>로 띄워 <b style="color:#D9D9DE"><code>/my-tool:이름</code>으로 바뀐 것</b>을 확인.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="takeaway">오늘 만든 하나가 <b>내일부터 계속</b> 쓰인다</div>
+</section>
+
+<!-- ═══════════ 22 · OUTRO ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#스킬 #플러그인</div>
+  </header>
+  <div class="outro">
+    <div class="eb">WRAP-UP</div>
+    <h1>설명하지 말고<br><em>물려주자</em></h1>
+    <div class="d">잘 만든 스킬 하나는 나에게도, 팀에게도<br><b style="color:#D8D8DC">두 번 설명하지 않아도 되는 자산</b>이 된다</div>
+    <div class="avatar"><svg style="width:52px;height:52px;color:var(--orange)"><use href="#spark"/></svg></div>
+    <div class="cta">Q&amp;A · 질문 환영</div>
+    <div class="promo">
+      <div class="th">SERIES<br>LINK</div>
+      <div>
+        <div class="pt">함께 보면 좋은 강의 · 훅 편 · 서브에이전트 편</div>
+        <div class="pd">플러그인에 함께 담기는 나머지 조각들을 다룹니다 <span class="hot">계속</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /stage -->
+
+<div class="hud">
+  <span class="cnt" id="cnt">01 / 22</span>
+  <button id="prev" aria-label="이전 슬라이드">‹</button>
+  <button id="next" aria-label="다음 슬라이드">›</button>
+  <button id="fs" aria-label="전체화면 (F)" style="display:grid;place-items:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="display:block"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+<div class="hint"><b>← →</b> 슬라이드 이동 &nbsp;·&nbsp; <b>F</b> 전체화면 &nbsp;·&nbsp; <b>Ctrl+P</b> PDF 저장</div>
+<div class="progress" id="prog"></div>
+</div><!-- /deck -->
+
+<script>
+(function(){
+  var stage=document.getElementById('stage');
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var cnt=document.getElementById('cnt');
+  var prog=document.getElementById('prog');
+  var cur=0, N=slides.length;
+
+  function pad(n){return String(n).padStart(2,'0');}
+  function go(n){
+    n=Math.max(0,Math.min(N-1,n));
+    if(n===cur && slides[n].classList.contains('active')){update();return;}
+    slides[cur].classList.remove('active');
+    cur=n;
+    slides[cur].classList.add('active');
+    update();
+  }
+  function update(){
+    cnt.textContent=pad(cur+1)+' / '+pad(N);
+    prog.style.width=(N>1?(cur/(N-1))*100:100)+'%';
+    try{if(history.replaceState){history.replaceState(null,'','#'+(cur+1));}}catch(e){/* 샌드박스(미리보기)에서는 URL 갱신 불가 — 무시 */}
+  }
+  function next(){go(cur+1);}
+  function prev(){go(cur-1);}
+
+  function fit(){
+    var s=Math.min(window.innerWidth/1280, window.innerHeight/720);
+    stage.style.transform='translate(-50%,-50%) scale('+s+')';
+  }
+  window.addEventListener('resize',fit);
+  fit();
+
+  // ── 안전장치: 폰트 대체·번역 등으로 내용이 넘치면 본문만 살짝 축소 ──
+  function fitBodies(){
+    for(var i=0;i<N;i++){
+      var b=slides[i].querySelector('.body');
+      if(!b) continue;
+      b.style.transform='none';
+      var kids=b.children;
+      if(!kids.length) continue;
+      var last=kids[kids.length-1];
+      var need=last.offsetTop+last.offsetHeight-b.offsetTop;
+      var avail=b.clientHeight;
+      if(need>avail+1){
+        var k=Math.max(.72, avail/need);
+        b.style.transformOrigin='top center';
+        b.style.transform='scale('+k+')';
+      }
+    }
+  }
+  window.addEventListener('resize',fitBodies);
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fitBodies);}
+  setTimeout(fitBodies,60);
+  fitBodies();
+
+  document.getElementById('next').addEventListener('click',next);
+  document.getElementById('prev').addEventListener('click',prev);
+
+  var toastEl=null,toastT=null;
+  function toast(msg){
+    if(!toastEl){toastEl=document.createElement('div');toastEl.className='toast';document.body.appendChild(toastEl);}
+    toastEl.textContent=msg;
+    toastEl.classList.add('on');
+    clearTimeout(toastT);
+    toastT=setTimeout(function(){toastEl.classList.remove('on');},3000);
+  }
+  function fsBlocked(){toast('이 미리보기 창에서는 전체화면이 차단돼 있어요 — 파일을 다운로드해 브라우저에서 열면 사용할 수 있습니다');}
+  function toggleFs(){
+    var d=document,el=d.documentElement;
+    var inFs=d.fullscreenElement||d.webkitFullscreenElement;
+    try{
+      if(inFs){(d.exitFullscreen||d.webkitExitFullscreen).call(d);return;}
+      var req=el.requestFullscreen||el.webkitRequestFullscreen;
+      if(!req){fsBlocked();return;}
+      var p=req.call(el);
+      if(p&&p.catch){p.catch(fsBlocked);}
+    }catch(err){fsBlocked();}
+  }
+  document.getElementById('fs').addEventListener('click',toggleFs);
+
+  window.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'||e.key===' '){e.preventDefault();next();}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();prev();}
+    else if(e.key==='Home'){e.preventDefault();go(0);}
+    else if(e.key==='End'){e.preventDefault();go(N-1);}
+    else if(e.key==='f'||e.key==='F'){toggleFs();}
+  });
+
+  var tx=null;
+  window.addEventListener('touchstart',function(e){tx=e.changedTouches[0].clientX;},{passive:true});
+  window.addEventListener('touchend',function(e){
+    if(tx===null)return;
+    var dx=e.changedTouches[0].clientX-tx;
+    if(dx<-50)next(); else if(dx>50)prev();
+    tx=null;
+  },{passive:true});
+
+  var h=parseInt((location.hash||'').replace('#',''),10);
+  if(!isNaN(h)&&h>=1&&h<=N){slides[0].classList.remove('active');cur=h-1;slides[cur].classList.add('active');}
+  update();
+})();
+</script>
+</body>
+</html>

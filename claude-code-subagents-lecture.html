@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 서브에이전트 완벽 가이드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --bg:#0B0B0D;
+  --panel:#161619;
+  --panel2:#1D1D22;
+  --line:#2A2A2F;
+  --line-soft:#1E1E23;
+  --orange:#FF5B1F;
+  --orange-hi:#FF8A57;
+  --orange-soft:rgba(255,91,31,.12);
+  --orange-bd:rgba(255,91,31,.38);
+  --txt:#F3F2EF;
+  --muted:#A2A2AB;
+  --dim:#77777F;
+  --cream:#F6F1E7;
+  --blue:#3D6FE0;
+  --green:#22A96B;
+  --purple:#8B5CF6;
+  --amber:#E8930C;
+  --red:#E14B3C;
+  --mono:'JetBrains Mono','SF Mono','Cascadia Code','D2Coding',Consolas,ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:#050506;
+  font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+  color:var(--txt);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+.deck{position:fixed;inset:0}
+.stage{
+  position:absolute;left:50%;top:50%;
+  width:1280px;height:720px;
+  transform:translate(-50%,-50%) scale(1);
+  transform-origin:center center;
+  background:var(--bg);
+  border-radius:6px;
+  overflow:hidden;
+  box-shadow:0 30px 90px rgba(0,0,0,.6);
+}
+
+/* ---------- slide frame ---------- */
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  opacity:0;visibility:hidden;
+  transform:translateY(16px);
+  transition:opacity .38s ease,transform .38s ease,visibility .38s;
+  pointer-events:none;
+}
+.slide.active{opacity:1;visibility:visible;transform:translateY(0);pointer-events:auto}
+
+.bar{
+  height:56px;flex:none;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 44px;
+  border-bottom:1px solid var(--line-soft);
+  background:rgba(11,11,13,.9);
+  z-index:5;
+}
+.brand{display:flex;align-items:center;gap:11px;font-size:14.5px}
+.brand .logo{width:19px;height:19px;flex:none;display:block}
+.brand b{font-weight:800;letter-spacing:-.2px}
+.brand i{font-style:normal;color:#3A3A40}
+.brand span{color:var(--muted);font-weight:500}
+.tag{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+
+.pagenum{
+  position:absolute;top:74px;right:48px;
+  font-size:14px;font-weight:700;color:#5C5C64;letter-spacing:.12em;
+  font-family:var(--mono);
+}
+.body{flex:1;min-height:0;padding:30px 64px 0;display:flex;flex-direction:column}
+.eyebrow{
+  color:var(--orange);font-size:15px;font-weight:800;letter-spacing:.14em;
+  margin-bottom:14px;
+}
+h1{font-size:41px;line-height:1.24;font-weight:800;letter-spacing:-.6px;margin-bottom:24px}
+h1 em{font-style:normal;color:var(--orange)}
+.lead{font-size:16.5px;color:var(--muted);line-height:1.62;margin:-8px 0 22px;max-width:980px}
+.lead b{color:#D8D8DC;font-weight:700}
+
+.takeaway{
+  flex:none;margin:auto 64px 32px;
+  background:var(--orange-soft);
+  border:1px solid var(--orange-bd);
+  border-radius:10px;
+  padding:13px 20px;text-align:center;
+  font-size:17px;font-weight:800;color:var(--orange);
+  letter-spacing:-.2px;
+}
+.takeaway b{color:var(--orange-hi)}
+
+/* ---------- numbered cards ---------- */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:13px;padding:16px 22px;
+  display:flex;gap:17px;align-items:flex-start;
+}
+.chip{
+  width:31px;height:31px;border-radius:8px;flex:none;margin-top:2px;
+  display:grid;place-items:center;
+  font-weight:800;font-size:15px;color:#fff;font-family:var(--mono);
+}
+.chip.b{background:var(--blue)} .chip.g{background:var(--green)}
+.chip.p{background:var(--purple)} .chip.a{background:var(--amber)}
+.chip.r{background:var(--red)} .chip.o{background:var(--orange)}
+.card h3{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.card h3 code{font-family:var(--mono);font-size:16px;color:var(--orange-hi);font-weight:700}
+.card p{font-size:14.5px;color:var(--muted);margin-top:5px;line-height:1.55}
+.card p code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+/* ---------- before/after vs ---------- */
+.vs{display:grid;grid-template-columns:1fr 52px 1fr;align-items:stretch}
+.vsbox{border-radius:15px;padding:24px 28px}
+.vsbox.was{background:#211311;border:1px solid #3C221B}
+.vsbox.now{background:#0E1727;border:1px solid #2B4A88}
+.vsbox .k{font-size:13.5px;font-weight:800;letter-spacing:.06em;margin-bottom:10px}
+.vsbox.was .k{color:#E0876A}
+.vsbox.now .k{color:#6FA1FF}
+.vsbox .t{font-size:22px;font-weight:800;letter-spacing:-.4px;line-height:1.35}
+.vsbox .d{font-size:14.5px;color:var(--muted);margin-top:9px;line-height:1.55}
+.vsarr{display:grid;place-items:center;color:#E4E4E8;font-size:26px}
+
+/* ---------- terminal / editor mockup ---------- */
+.term{background:#0D0D10;border:1px solid #26262C;border-radius:13px;overflow:hidden}
+.term .tb{
+  height:38px;display:flex;align-items:center;gap:8px;padding:0 15px;
+  background:#141418;border-bottom:1px solid #212127;
+}
+.dot{width:11px;height:11px;border-radius:50%}
+.dot.r{background:#FF5F57}.dot.y{background:#FEBC2E}.dot.g{background:#28C840}
+.term .tt{font-size:12.5px;color:#84848C;margin-left:7px;font-weight:600}
+.term pre{
+  margin:0;padding:18px 24px;
+  font-family:var(--mono);font-size:13.5px;line-height:1.8;
+  color:#D9D9DF;white-space:pre-wrap;word-break:break-all;
+}
+.term pre .p{color:var(--orange);font-weight:700}
+.term pre .k{color:#FF9264}
+.term pre .s{color:#8CD49A}
+.term pre .c{color:#67676F}
+.term pre .dm{color:#8A8A93}
+.term pre .ok{color:#3ACB82}
+.term pre .hl{color:#FFD9C4}
+
+/* light mac window (slack풍) */
+.win{background:#FFFFFF;border-radius:13px;overflow:hidden;color:#1C1C1E;box-shadow:0 14px 44px rgba(0,0,0,.45)}
+.win .tb{height:38px;display:flex;align-items:center;gap:8px;padding:0 15px;background:#F1EFEC;border-bottom:1px solid #E2DFDA}
+.win .tt{font-size:12.5px;color:#6E6A64;margin-left:7px;font-weight:600}
+
+/* ---------- table ---------- */
+.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.tbl th{
+  text-align:left;color:#87878F;font-weight:700;font-size:12.5px;letter-spacing:.08em;
+  padding:11px 18px;border-bottom:1px solid var(--line);background:#19191D;
+}
+.tbl td{padding:11.5px 18px;border-bottom:1px solid var(--line-soft);vertical-align:top;line-height:1.5}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .mono{font-family:var(--mono);font-size:13px;color:#FFC29E;white-space:nowrap}
+.tbl .mut{color:var(--muted)}
+.pill{display:inline-block;font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:.04em}
+.pill.req{background:rgba(255,91,31,.16);color:#FF8A57}
+.pill.opt{background:#222228;color:#8F8F98}
+
+/* ---------- 3-col grid cards ---------- */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:20px 22px}
+.gcard .gh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.gcard .gh .em{font-size:21px}
+.gcard h3{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.gcard h3 code{font-family:var(--mono);font-size:15.5px;color:var(--orange-hi)}
+.gcard .meta{font-family:var(--mono);font-size:11.5px;color:#8B8B94;background:#101013;border:1px solid #232329;border-radius:7px;padding:6px 10px;margin:9px 0 10px;line-height:1.6}
+.gcard p{font-size:13.8px;color:var(--muted);line-height:1.58}
+.gcard p b{color:#D9D9DE}
+.gcard ul{list-style:none;margin-top:8px}
+.gcard ul li{font-size:13.5px;color:var(--muted);line-height:1.55;padding-left:15px;position:relative;margin-top:5px}
+.gcard ul li::before{content:"·";color:var(--orange);position:absolute;left:2px;font-weight:800}
+
+.note{position:relative;padding-left:22px;font-size:13.5px;color:#8D8D96;line-height:1.55;margin-top:15px}
+.note::before{content:"＊";position:absolute;left:0;top:0;color:var(--orange);font-weight:800}
+.note code{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#1E1E23;padding:1px 6px;border-radius:5px}
+.note b{color:#C9C9CF}
+
+/* ---------- cover ---------- */
+.cover-top{flex:1;min-height:0;background:var(--cream);position:relative;display:grid;place-items:center}
+.cover-bot{flex:none;background:#070708;padding:32px 64px 40px;border-top:1px solid #000}
+.badge{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:13px;font-weight:800;letter-spacing:.03em;
+  padding:6px 13px;border-radius:7px;margin-bottom:16px;
+}
+.cover-bot h1{font-size:52px;line-height:1.18;letter-spacing:-1.2px;margin-bottom:14px}
+.cover-bot .sub{font-size:17.5px;color:var(--muted)}
+.cover-bot .sub b{color:#EDEDEF}
+
+/* ---------- flow diagram(dark) ---------- */
+.flowwrap{background:#101013;border:1px solid var(--line);border-radius:15px;padding:10px 8px}
+
+/* ---------- two column layout helper ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.cols-64{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
+
+/* mission time chip */
+.time{margin-left:auto;flex:none;font-family:var(--mono);font-size:12px;font-weight:700;color:#8F8F98;background:#111114;border:1px solid #26262C;padding:5px 11px;border-radius:20px}
+
+/* ---------- outro ---------- */
+.outro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:16px}
+.outro .eb{color:var(--orange);font-size:14.5px;font-weight:800;letter-spacing:.22em;margin-bottom:16px}
+.outro h1{font-size:40px;line-height:1.3;margin-bottom:14px}
+.outro .d{font-size:15.5px;color:var(--muted);line-height:1.65;margin-bottom:26px}
+.avatar{
+  width:118px;height:118px;border-radius:50%;
+  background:#141417;border:3px solid var(--orange);
+  display:grid;place-items:center;font-size:56px;margin-bottom:22px;
+  box-shadow:0 0 0 7px rgba(255,91,31,.09);
+}
+.cta{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:16.5px;font-weight:800;padding:13px 42px;border-radius:32px;
+  letter-spacing:-.2px;margin-bottom:26px;
+}
+.promo{
+  display:flex;align-items:center;gap:16px;text-align:left;
+  background:#121215;border:1px solid var(--line);border-radius:14px;
+  padding:14px 22px;
+}
+.promo .th{
+  width:92px;height:56px;border-radius:9px;flex:none;
+  background:linear-gradient(135deg,#2B1B4E,#0E0E12 60%);
+  border:1px solid #3A2E63;
+  display:grid;place-items:center;color:#C9B8FF;
+  font-family:var(--mono);font-size:9.5px;font-weight:800;text-align:center;line-height:1.5;
+}
+.promo .pt{font-size:16px;font-weight:800}
+.promo .pd{font-size:13px;color:var(--muted);margin-top:3px}
+.promo .hot{color:var(--orange);font-weight:800}
+
+.tbl{table-layout:fixed}
+.grid3>*,.grid2>*,.cols>*,.cols-64>*{min-width:0}
+
+/* ---------- controls ---------- */
+.hud{position:fixed;right:22px;bottom:16px;display:flex;align-items:center;gap:10px;z-index:50;user-select:none}
+.hud .cnt{font-family:var(--mono);font-size:12.5px;color:#6E6E76;letter-spacing:.08em;margin-right:2px}
+.hud button{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid #303036;background:#121215;color:#C9C9CF;
+  font-size:16px;cursor:pointer;transition:.18s;
+}
+.hud button:hover{border-color:var(--orange);color:var(--orange)}
+.hint{position:fixed;left:22px;bottom:21px;font-size:12px;color:#55555C;z-index:50;user-select:none}
+.toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%) translateY(8px);background:#1A1A1E;border:1px solid #3A3A40;color:#EDEDEF;font-size:13px;padding:10px 18px;border-radius:10px;z-index:60;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:80%;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.hint b{color:#7C7C84;font-weight:700}
+.progress{position:fixed;left:0;bottom:0;height:3px;background:var(--orange);width:0%;z-index:60;transition:width .3s ease}
+
+/* ---------- print ---------- */
+@media print{
+  body{overflow:visible;background:#0B0B0D}
+  .hud,.hint,.progress,.toast{display:none!important}
+  .deck{position:static}
+  .stage{position:static;transform:none!important;width:1280px;height:auto;box-shadow:none;border-radius:0;overflow:visible;left:auto;top:auto;margin:0 auto}
+  .slide{position:relative;opacity:1!important;visibility:visible!important;transform:none!important;width:1280px;height:720px;page-break-after:always;break-inside:avoid}
+}
+@page{size:1280px 720px;margin:0}
+</style>
+</head>
+<body>
+<div class="deck">
+<div class="stage" id="stage">
+<svg style="display:none" aria-hidden="true"><symbol id="spark" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2.7" stroke-linecap="round" fill="none"><path d="M12 2.6v18.8M2.6 12h18.8M5.4 5.4l13.2 13.2M18.6 5.4L5.4 18.6"/></g></symbol></svg>
+
+<!-- ═══════════ 01 · COVER ═══════════ -->
+<section class="slide active">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="cover-top">
+    <div style="width:76%">
+      <svg viewBox="0 0 1000 340" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <g id="wspark"><g stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" fill="none">
+            <path d="M0 -11v22M-11 0h22M-7.8 -7.8l15.6 15.6M7.8 -7.8L-7.8 7.8"/></g></g>
+        </defs>
+        <!-- 사용자 -->
+        <text x="500" y="18" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7A7466" font-family="inherit">사용자</text>
+        <circle cx="500" cy="42" r="13" fill="none" stroke="#4A453B" stroke-width="2"/>
+        <path d="M483 68 a17 11 0 0 1 34 0" fill="none" stroke="#4A453B" stroke-width="2"/>
+        <line x1="500" y1="70" x2="500" y2="98" stroke="#A29A89" stroke-width="1.6"/>
+        <!-- 메인 에이전트 -->
+        <rect x="470" y="98" width="60" height="60" rx="13" fill="#FF5B1F"/>
+        <use href="#wspark" transform="translate(500,128) scale(1.05)"/>
+        <text x="500" y="180" text-anchor="middle" font-size="12.5" font-weight="700" fill="#6E6858" font-family="inherit">메인 에이전트</text>
+        <!-- 연결선 -->
+        <path d="M500 158 V196 M260 196 H740 M260 196 V246 M500 188 V246 M740 196 V246" fill="none" stroke="#A29A89" stroke-width="1.6"/>
+        <!-- 독립 컨텍스트 점선 박스 -->
+        <rect x="158" y="212" width="684" height="118" rx="16" fill="none" stroke="#B7AF9F" stroke-width="1.6" stroke-dasharray="7 6"/>
+        <text x="820" y="236" text-anchor="end" font-size="11.5" font-weight="700" fill="#948C7A" font-family="inherit">독립 컨텍스트 · ISOLATED</text>
+        <!-- 서브에이전트 3개 -->
+        <rect x="236" y="246" width="48" height="48" rx="11" fill="#FF5B1F"/>
+        <use href="#wspark" transform="translate(260,270) scale(.82)"/>
+        <text x="260" y="316" text-anchor="middle" font-size="12" fill="#6E6858" font-family="ui-monospace,monospace">code-reviewer</text>
+        <rect x="476" y="246" width="48" height="48" rx="11" fill="#FF5B1F"/>
+        <use href="#wspark" transform="translate(500,270) scale(.82)"/>
+        <text x="500" y="316" text-anchor="middle" font-size="12" fill="#6E6858" font-family="ui-monospace,monospace">debugger</text>
+        <rect x="716" y="246" width="48" height="48" rx="11" fill="#FF5B1F"/>
+        <use href="#wspark" transform="translate(740,270) scale(.82)"/>
+        <text x="740" y="316" text-anchor="middle" font-size="12" fill="#6E6858" font-family="ui-monospace,monospace">Explore</text>
+      </svg>
+    </div>
+  </div>
+  <div class="cover-bot">
+    <span class="badge">• 클로드 코드 완벽 마스터 · 수업 자료</span>
+    <h1>Claude에게 팀을 붙이는<br><em style="color:var(--orange);font-style:normal">서브에이전트</em> 완벽 가이드</h1>
+    <div class="sub">이제 Claude는 <b>혼자 일하지 않는다</b> &nbsp;·&nbsp; 공식 문서 기반 · 2026.07</div>
+  </div>
+</section>
+
+<!-- ═══════════ 02 · WHY ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">02</div>
+  <div class="body">
+    <div class="eyebrow">문제 인식 · WHY</div>
+    <h1>컨텍스트 윈도우는 <em>무한하지 않다</em></h1>
+    <div class="lead">긴 세션의 공통 증상 — 답변이 흐려지고, 한 시간 전 결정을 잊는다. 모델이 멍청해진 게 아니라 <b>컨텍스트가 소음으로 가득 찼기 때문</b>이다. 탐색 로그·테스트 출력처럼 한 번 읽고 버릴 내용이 대화를 점령한다.</div>
+    <div class="vs">
+      <div class="vsbox was">
+        <div class="k">지금까지 · 전부 메인에서</div>
+        <div class="t">대화 하나에<br>탐색 + 로그 + 구현 전부</div>
+        <div class="d">읽고 버릴 출력이 컨텍스트를 잠식 → 세션이 길어질수록 품질 하락. 새 세션을 열면 이번엔 맥락을 잃는다.</div>
+      </div>
+      <div class="vsarr">→</div>
+      <div class="vsbox now">
+        <div class="k">이제부터 · 위임</div>
+        <div class="t">무거운 작업은<br>서브에이전트에게</div>
+        <div class="d">소음은 별도 컨텍스트에서 소화하고, 메인 대화에는 <b style="color:#CFE0FF">요약만</b> 돌아온다. 쌓아온 맥락은 그대로 유지.</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">컨텍스트가 곧 성능이다</div>
+</section>
+
+<!-- ═══════════ 03 · WHAT ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">03</div>
+  <div class="body">
+    <div class="eyebrow">개념 정의 · WHAT</div>
+    <h1>'서브에이전트'는 <em>뭐가 다른가</em></h1>
+    <div class="lead">특정 작업 전담으로 <b>미리 구성해 둔 별도의 Claude 인스턴스</b>. 필요할 때 메인 Claude가 일을 떼어 맡긴다.</div>
+    <div class="cards">
+      <div class="card"><div class="chip b">1</div><div>
+        <h3>독립된 컨텍스트 윈도우를 가진다</h3>
+        <p>메인 대화 이력을 보지 못하는 대신, 메인 대화를 오염시키지도 않는다. 작업이 끝나면 <b style="color:#D9D9DE">결과 요약만</b> 돌려준다.</p>
+      </div></div>
+      <div class="card"><div class="chip g">2</div><div>
+        <h3>자기만의 시스템 프롬프트로 움직인다</h3>
+        <p>역할·작업 절차·출력 형식을 파일에 박아둔다. 매번 같은 지시를 반복할 필요가 없다.</p>
+      </div></div>
+      <div class="card"><div class="chip p">3</div><div>
+        <h3>도구·권한·모델을 따로 설정한다</h3>
+        <p>읽기 전용 리뷰어, Bash만 쓰는 분석가처럼 <b style="color:#D9D9DE">필요한 도구만</b> 허용. 값싼 모델로 돌려 비용도 아낀다.</p>
+      </div></div>
+      <div class="card"><div class="chip a">4</div><div>
+        <h3>파일이라서 재사용·공유가 된다</h3>
+        <p>마크다운 파일 하나가 정의의 전부. git에 커밋하면 팀 전체가 같은 전문가를 쓴다.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="takeaway">핵심은 분리다 — 컨텍스트도, 프롬프트도, 권한도</div>
+</section>
+
+<!-- ═══════════ 04 · HOW ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">04</div>
+  <div class="body">
+    <div class="eyebrow">동작 원리 · HOW IT WORKS</div>
+    <h1>위임은 <em>이렇게</em> 흘러간다</h1>
+    <div class="flowwrap">
+      <svg viewBox="0 0 1152 262" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6E6E76"/></marker></defs>
+        <!-- A 사용자 요청 -->
+        <rect x="10" y="94" width="152" height="80" rx="13" fill="#17171A" stroke="#2C2C32" stroke-width="1.4"/>
+        <text x="86" y="128" text-anchor="middle" font-size="15" font-weight="800" fill="#EDEDEF" font-family="inherit">사용자 요청</text>
+        <text x="86" y="152" text-anchor="middle" font-size="11.5" fill="#85858E" font-family="inherit">"테스트 전부 돌려봐"</text>
+        <line x1="162" y1="134" x2="198" y2="134" stroke="#55555E" stroke-width="1.6" marker-end="url(#arr)"/>
+        <!-- B 메인 Claude -->
+        <rect x="202" y="86" width="196" height="96" rx="13" fill="#17171A" stroke="#2C2C32" stroke-width="1.4"/>
+        <text x="300" y="122" text-anchor="middle" font-size="15" font-weight="800" fill="#EDEDEF" font-family="inherit">메인 Claude</text>
+        <text x="300" y="145" text-anchor="middle" font-size="11.5" fill="#85858E" font-family="inherit">description 매칭</text>
+        <text x="300" y="163" text-anchor="middle" font-size="11.5" fill="#85858E" font-family="inherit">→ 위임 결정</text>
+        <text x="425" y="120" text-anchor="middle" font-size="11.5" font-weight="700" fill="#8A8A93" font-family="inherit">Agent 도구 호출</text>
+        <line x1="398" y1="134" x2="450" y2="134" stroke="#55555E" stroke-width="1.6" marker-end="url(#arr)"/>
+        <!-- C 서브에이전트 존 -->
+        <rect x="456" y="18" width="420" height="230" rx="16" fill="rgba(255,91,31,.055)" stroke="#FF5B1F" stroke-width="1.6" stroke-dasharray="7 5"/>
+        <text x="478" y="48" font-size="14.5" font-weight="800" fill="#FF8A57" font-family="inherit">서브에이전트 · 독립 컨텍스트</text>
+        <text x="478" y="68" font-size="11.5" fill="#B08A76" font-family="inherit">자기만의 시스템 프롬프트 · 도구 · 권한으로 작업</text>
+        <rect x="490" y="86" width="352" height="38" rx="9" fill="#1A1A1E" stroke="#2E2E34"/>
+        <text x="666" y="110" text-anchor="middle" font-size="12.5" fill="#C9C9CF" font-family="ui-monospace,monospace">파일 탐색 · 대량 검색 결과</text>
+        <rect x="490" y="134" width="352" height="38" rx="9" fill="#1A1A1E" stroke="#2E2E34"/>
+        <text x="666" y="158" text-anchor="middle" font-size="12.5" fill="#C9C9CF" font-family="ui-monospace,monospace">테스트 실행 · 수천 줄 로그</text>
+        <rect x="490" y="182" width="352" height="38" rx="9" fill="#1A1A1E" stroke="#2E2E34"/>
+        <text x="666" y="206" text-anchor="middle" font-size="12.5" fill="#C9C9CF" font-family="ui-monospace,monospace">원인 분석 · 반복 시도</text>
+        <text x="666" y="238" text-anchor="middle" font-size="11" fill="#8A6A5A" font-family="inherit">↑ 이 소음은 전부 여기 갇힌다</text>
+        <!-- C→D -->
+        <text x="911" y="120" text-anchor="middle" font-size="11.5" font-weight="700" fill="#8A8A93" font-family="inherit">요약 리포트만 반환</text>
+        <line x1="876" y1="134" x2="944" y2="134" stroke="#55555E" stroke-width="1.6" marker-end="url(#arr)"/>
+        <!-- D 메인 복귀 -->
+        <rect x="948" y="86" width="196" height="96" rx="13" fill="#0F1A14" stroke="#2E5A40" stroke-width="1.4"/>
+        <text x="1046" y="122" text-anchor="middle" font-size="15" font-weight="800" fill="#D9F2E2" font-family="inherit">메인 대화 계속</text>
+        <text x="1046" y="145" text-anchor="middle" font-size="11.5" fill="#7FAE93" font-family="inherit">"실패 3건 · 원인은 ..."</text>
+        <text x="1046" y="163" text-anchor="middle" font-size="11.5" fill="#7FAE93" font-family="inherit">결론만 수신</text>
+      </svg>
+    </div>
+    <div class="note">서브에이전트가 받는 것 — 자기 시스템 프롬프트 + 위임 메시지 + <code>CLAUDE.md</code>·git 스냅샷. <b>메인 대화 이력은 보지 못한다.</b></div>
+    <div class="note">기본은 <b>백그라운드 실행</b> — 서브에이전트가 도는 동안 메인에서 계속 작업할 수 있고, 권한 요청은 메인 세션에 떠서 승인하면 된다.</div>
+  </div>
+  <div class="takeaway">메인 대화로는 결과 요약만 돌아온다</div>
+</section>
+
+<!-- ═══════════ 05 · BUILT-IN ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">05</div>
+  <div class="body">
+    <div class="eyebrow">기본 제공 · BUILT-IN</div>
+    <h1>이미 내장된 <em>기본 서브에이전트</em> 3인방</h1>
+    <div class="grid3">
+      <div class="gcard">
+        <div class="gh"><span class="em">🔎</span><h3><code>Explore</code></h3></div>
+        <div class="meta">읽기 전용 · Write / Edit 거부<br>model: 메인 대화를 따라감</div>
+        <p><b>코드베이스 탐색 전담.</b> 파일 찾기·구조 파악이 필요하면 Claude가 알아서 부른다.</p>
+        <ul>
+          <li>탐색 강도 지정: quick · medium · very thorough</li>
+          <li>속도를 위해 CLAUDE.md와 git 상태는 생략</li>
+        </ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🗺️</span><h3><code>Plan</code></h3></div>
+        <div class="meta">읽기 전용 · 플랜 모드 전용<br>model: 메인 대화를 따라감</div>
+        <p><b>계획 전 리서치 요원.</b> 플랜 모드에서 조사가 필요할 때 자동 위임된다.</p>
+        <ul>
+          <li>탐색 결과는 별도 컨텍스트에 격리</li>
+          <li>메인 대화는 읽기 전용으로 깔끔하게 유지</li>
+        </ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🧰</span><h3><code>general-purpose</code></h3></div>
+        <div class="meta">모든 도구 사용 가능<br>model: 메인 대화를 따라감</div>
+        <p><b>만능형.</b> 탐색과 수정이 모두 필요한 복잡한 다단계 작업을 맡는다.</p>
+        <ul>
+          <li>여러 단계가 얽힌 작업의 기본 선택지</li>
+          <li>커스텀 지정 없이 위임하면 보통 이 친구</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">그 외 <code>statusline-setup</code>, <code>claude-code-guide</code> 같은 도우미 에이전트도 내장되어 상황에 맞게 자동으로 쓰인다.</div>
+  </div>
+  <div class="takeaway">이미 여러분 몰래 일하고 있었다</div>
+</section>
+
+<!-- ═══════════ 06 · WHERE ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">06</div>
+  <div class="body">
+    <div class="eyebrow">저장 위치 · WHERE</div>
+    <h1>어디에 두느냐가 <em>범위</em>를 정한다</h1>
+    <table class="tbl">
+      <tr><th style="width:96px">우선순위</th><th style="width:262px">위치</th><th style="width:190px">적용 범위</th><th>비고</th></tr>
+      <tr><td class="mono">1</td><td>관리 설정 (managed)</td><td class="mut">조직 전체</td><td class="mut">관리자가 배포 · 항상 최우선</td></tr>
+      <tr><td class="mono">2</td><td class="mono">claude --agents '{...}'</td><td class="mut">현재 세션</td><td class="mut">JSON 임시 정의 · 테스트·자동화용</td></tr>
+      <tr style="background:rgba(255,91,31,.055)"><td class="mono" style="color:var(--orange)">3</td><td class="mono" style="color:#FFB48A">.claude/agents/</td><td style="color:#E8E8EC;font-weight:700">현재 프로젝트</td><td class="mut"><b style="color:#FF8A57">git에 커밋 → 팀 공유 자산</b> ★ 추천</td></tr>
+      <tr><td class="mono">4</td><td class="mono">~/.claude/agents/</td><td class="mut">내 모든 프로젝트</td><td class="mut">개인용 · 어디서나 따라다님</td></tr>
+      <tr><td class="mono">5</td><td>플러그인 <span class="mono">agents/</span></td><td class="mut">플러그인 활성 범위</td><td class="mut">마켓플레이스로 배포·설치</td></tr>
+    </table>
+    <div class="note">하위 폴더로 정리해도 된다 (<code>agents/review/…</code>) — 식별자는 파일 경로가 아니라 <b>frontmatter의 <code>name</code> 필드 하나</b>.</div>
+    <div class="note">같은 이름이 겹치면 위 표에서 <b>순위가 높은 쪽이 이긴다</b>. 프로젝트 정의가 개인 정의를 덮어쓴다.</div>
+  </div>
+  <div class="takeaway">이름이 겹치면 프로젝트가 개인을 이긴다</div>
+</section>
+
+<!-- ═══════════ 07 · ANATOMY ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">07</div>
+  <div class="body">
+    <div class="eyebrow">파일 구조 · ANATOMY</div>
+    <h1>파일 하나를 <em>해부</em>해 보자</h1>
+    <div class="cols-64">
+      <div class="term">
+        <div class="tb"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tt">.claude/agents/code-reviewer.md</span></div>
+        <pre style="font-size:12.8px;line-height:1.72"><span class="c">---</span>
+<span class="k">name:</span> <span class="hl">code-reviewer</span>
+<span class="k">description:</span> <span class="s">코드 품질·보안 전문 리뷰어.</span>
+  <span class="s">코드 작성·수정 직후 능동적으로 사용.</span>
+<span class="k">tools:</span> <span class="hl">Read, Grep, Glob, Bash</span>
+<span class="k">model:</span> <span class="hl">inherit</span>
+<span class="c">---</span>
+
+<span class="dm">당신은 시니어 코드 리뷰어입니다.</span>
+
+<span class="dm">호출되면 git diff 로 변경부터 확인하고</span>
+<span class="dm">수정된 파일에 집중해 즉시 리뷰합니다.</span>
+
+<span class="dm">피드백은 Critical / Warning / Suggestion</span>
+<span class="dm">우선순위로 정리해 제시합니다.</span></pre>
+      </div>
+      <div class="cards" style="gap:13px">
+        <div class="card" style="padding:15px 19px"><div class="chip o">1</div><div>
+          <h3 style="font-size:17px"><code>description</code></h3>
+          <p style="font-size:13.5px">Claude가 <b style="color:#D9D9DE">"언제 이 에이전트를 부를지"</b> 판단하는 유일한 근거. 구체적일수록 위임이 정확해진다.</p>
+        </div></div>
+        <div class="card" style="padding:15px 19px"><div class="chip b">2</div><div>
+          <h3 style="font-size:17px"><code>tools</code></h3>
+          <p style="font-size:13.5px">허용 도구 화이트리스트. Edit가 없으니 이 리뷰어는 <b style="color:#D9D9DE">읽기만 가능</b>. 생략하면 메인의 도구 전부 상속.</p>
+        </div></div>
+        <div class="card" style="padding:15px 19px"><div class="chip g">3</div><div>
+          <h3 style="font-size:17px">본문 = 시스템 프롬프트</h3>
+          <p style="font-size:13.5px">이 에이전트만의 헌법. 역할·절차·출력 형식을 여기 새긴다. Claude Code 기본 프롬프트는 받지 않는다.</p>
+        </div></div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">마크다운 파일 하나 = 팀원 한 명</div>
+</section>
+
+<!-- ═══════════ 08 · FIELDS ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">08</div>
+  <div class="body">
+    <div class="eyebrow">설정 필드 · FRONTMATTER</div>
+    <h1>자주 쓰는 <em>필드</em> 총정리</h1>
+    <table class="tbl">
+      <tr><th style="width:280px">필드</th><th style="width:92px">필수</th><th>설명</th></tr>
+      <tr><td class="mono">name</td><td><span class="pill req">필수</span></td><td class="mut">소문자-하이픈 고유 식별자 — 파일명과 달라도 됨</td></tr>
+      <tr><td class="mono">description</td><td><span class="pill req">필수</span></td><td class="mut"><b style="color:#E8E8EC">언제 위임할지</b> Claude가 읽는 판단 기준 · 사실상 트리거</td></tr>
+      <tr><td class="mono">tools · disallowedTools</td><td><span class="pill opt">선택</span></td><td class="mut">허용 / 차단 목록. 둘 다 생략하면 메인의 도구 전부 상속</td></tr>
+      <tr><td class="mono">model</td><td><span class="pill opt">선택</span></td><td class="mut">sonnet · opus · haiku · 전체 모델 ID · inherit — <b style="color:#E8E8EC">기본값 inherit</b></td></tr>
+      <tr><td class="mono">permissionMode</td><td><span class="pill opt">선택</span></td><td class="mut">default · acceptEdits · plan · bypassPermissions 등 권한 동작 방식</td></tr>
+      <tr><td class="mono">memory</td><td><span class="pill opt">선택</span></td><td class="mut">user · project · local — 세션이 끝나도 쌓이는 에이전트 전용 기억</td></tr>
+    </table>
+    <div class="note">그 밖에 <code>skills</code>(스킬 내용 사전 주입) · <code>mcpServers</code>(이 에이전트 전용 MCP) · <code>hooks</code> · <code>maxTurns</code> · <code>isolation: worktree</code> · <code>background</code> 등 — 필요해질 때 공식 문서에서 찾아 쓰면 된다.</div>
+  </div>
+  <div class="takeaway">위임 여부는 description이 결정한다</div>
+</section>
+
+<!-- ═══════════ 09 · CREATE ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">09</div>
+  <div class="body">
+    <div class="eyebrow">만드는 법 · CREATE</div>
+    <h1>가장 빠른 길, <em>Claude에게 시켜라</em></h1>
+    <div class="cols-64">
+      <div class="term">
+        <div class="tb"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tt">Claude Code</span></div>
+        <pre style="font-size:13px;line-height:1.78"><span class="p">❯</span> <span class="hl">~/.claude/agents/ 에 code-improver 서브에이전트 만들어줘.</span>
+  <span class="hl">파일을 스캔해 가독성·성능·베스트 프랙티스 개선점 제안.</span>
+  <span class="hl">문제 설명 → 현재 코드 → 개선안 순서로 출력.</span>
+  <span class="hl">읽기 전용으로, 모델은 Sonnet.</span>
+
+<span class="ok">⏺</span> <span class="dm">Write(~/.claude/agents/code-improver.md)</span>
+  <span class="c">⎿ name·description·tools·model + 시스템 프롬프트 생성</span>
+
+<span class="p">❯</span> <span class="hl">code-improver 에이전트로 이 프로젝트 개선점 찾아줘</span></pre>
+      </div>
+      <div class="cards" style="gap:13px">
+        <div class="card" style="padding:15px 19px"><div class="chip b">1</div><div>
+          <h3 style="font-size:17px">역할을 말로 설명한다</h3>
+          <p style="font-size:13.5px">저장 위치 · 할 일 · 도구 · 모델까지 한 번에 담아 요청. Claude가 프로젝트 맥락에 맞춰 초안을 써 준다.</p>
+        </div></div>
+        <div class="card" style="padding:15px 19px"><div class="chip g">2</div><div>
+          <h3 style="font-size:17px">파일 열어 검수한다</h3>
+          <p style="font-size:13.5px"><b style="color:#D9D9DE">description은 꼭 직접 다듬자.</b> 자동 위임의 정확도가 여기서 갈린다.</p>
+        </div></div>
+        <div class="card" style="padding:15px 19px"><div class="chip p">3</div><div>
+          <h3 style="font-size:17px">저장하면 끝</h3>
+          <p style="font-size:13.5px">폴더를 실시간 감시하므로 <b style="color:#D9D9DE">몇 초 안에 자동 반영</b>. 재시작이 필요 없다 (첫 폴더 생성 때만 예외).</p>
+        </div></div>
+      </div>
+    </div>
+    <div class="note">v2.1.198부터 <code>/agents</code> 대화형 마법사는 제거 — 이제 <b>"Claude에게 시키기" 또는 파일 직접 작성</b>이 공식 루트다. 구버전이라면 <code>/agents</code>로도 만들 수 있다.</div>
+  </div>
+  <div class="takeaway">초안은 Claude가, 다듬기는 사람이</div>
+</section>
+<style>
+.sum{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:17px 24px;display:flex;align-items:center;gap:22px}
+.sum .n{font-family:var(--mono);font-size:15px;font-weight:800;color:#6C6C74;flex:none}
+.sum .k{font-size:21px;font-weight:800;letter-spacing:-.3px;width:96px;flex:none}
+.sum .k em{font-style:normal;color:var(--orange)}
+.sum .d{font-size:15px;color:var(--muted);line-height:1.5}
+.sum .d code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+</style>
+
+<!-- ═══════════ 10 · INVOKE ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">10</div>
+  <div class="body">
+    <div class="eyebrow">호출하기 · INVOKE</div>
+    <h1>부르는 방법은 <em>3가지</em>다</h1>
+    <div class="cols">
+      <div class="cards" style="gap:13px">
+        <div class="card" style="padding:15px 19px"><div class="chip b">1</div><div>
+          <h3 style="font-size:17px">자동 위임</h3>
+          <p style="font-size:13.5px">description과 현재 맥락을 보고 Claude가 알아서 부른다. 팁: description에 <b style="color:#D9D9DE">"능동적으로 사용 (use proactively)"</b>을 넣으면 더 적극적으로 위임.</p>
+        </div></div>
+        <div class="card" style="padding:15px 19px"><div class="chip g">2</div><div>
+          <h3 style="font-size:17px">자연어로 지목</h3>
+          <p style="font-size:13.5px">"code-reviewer 서브에이전트로 최근 변경 검토해줘" — 보통은 위임되지만, 최종 판단은 Claude에게 있다.</p>
+        </div></div>
+        <div class="card" style="padding:15px 19px"><div class="chip o">3</div><div>
+          <h3 style="font-size:17px">@멘션 = 확정 실행</h3>
+          <p style="font-size:13.5px"><code>@agent-이름</code>으로 부르면 <b style="color:#D9D9DE">반드시 그 에이전트가 실행</b>된다. 플러그인 제공분은 <code>@agent-플러그인:이름</code>.</p>
+        </div></div>
+      </div>
+      <div>
+        <div class="term">
+          <div class="tb"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tt">Claude Code</span></div>
+          <pre style="font-size:13px;line-height:1.82"><span class="p">❯</span> <span class="hl">@agent-code-reviewer auth 모듈 변경분 리뷰해줘</span>
+
+<span class="k">⏺</span> <span class="hl">code-reviewer</span> <span class="c">(백그라운드 · 독립 컨텍스트)</span>
+  <span class="c">⎿ git diff 확인 → 파일 6개 리뷰 중…</span>
+
+<span class="ok">⏺</span> <span class="dm">리뷰 완료</span>
+  <span class="c">⎿</span> <span class="dm">Critical 1 · Warning 3 · Suggestion 5</span></pre>
+        </div>
+        <div class="note">세션 전체를 하나의 에이전트로 굳히기 — <code>claude --agent code-reviewer</code>. 메인 스레드가 그 에이전트의 프롬프트·도구·모델로 시작한다.</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">확실하게 시키려면 @로 지목하라</div>
+</section>
+
+<!-- ═══════════ 11 · RECIPES ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">11</div>
+  <div class="body">
+    <div class="eyebrow">실전 예제 · RECIPES</div>
+    <h1>바로 쓰는 <em>공식 레시피</em> 3종</h1>
+    <div class="grid3">
+      <div class="gcard">
+        <div class="gh"><span class="em">🛡️</span><h3><code>code-reviewer</code></h3></div>
+        <div class="meta">tools: Read, Grep, Glob, Bash<br>model: inherit</div>
+        <p><b>읽기 전용 감시자.</b> Edit가 없어 코드를 절대 건드리지 못한다.</p>
+        <ul>
+          <li>git diff부터 확인하도록 절차 명시</li>
+          <li>Critical · Warning · Suggestion 3단 리포트</li>
+          <li>description에 "코드 수정 직후 능동적으로"</li>
+        </ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🔧</span><h3><code>debugger</code></h3></div>
+        <div class="meta">tools: Read, Edit, Bash, Grep, Glob<br>model: (생략 → inherit)</div>
+        <p><b>고치는 것까지가 일.</b> 그래서 리뷰어와 달리 Edit를 준다.</p>
+        <ul>
+          <li>에러 캡처 → 재현 → 원인 격리 → 최소 수정 → 검증</li>
+          <li>"증상이 아니라 근본 원인을 고쳐라" 명시</li>
+        </ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">📊</span><h3><code>data-scientist</code></h3></div>
+        <div class="meta">tools: Bash, Read, Write<br>model: sonnet</div>
+        <p><b>코딩 밖 업무도 된다.</b> SQL·BigQuery 분석 전담 요원.</p>
+        <ul>
+          <li>쿼리 접근법 · 가정 · 핵심 발견을 함께 보고</li>
+          <li>"비용 효율적인 쿼리"를 프롬프트로 강제</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">셋 다 공식 문서의 예제 — 그대로 붙여 넣고 우리 팀 컨벤션(린트 규칙 · 리뷰 체크리스트)을 본문에 추가하는 게 정석이다.</div>
+  </div>
+  <div class="takeaway">한 에이전트에겐 한 가지 일만</div>
+</section>
+
+<!-- ═══════════ 12 · PATTERNS ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">12</div>
+  <div class="body">
+    <div class="eyebrow">활용 패턴 · PATTERNS</div>
+    <h1>성능을 뽑아내는 <em>패턴 3가지</em></h1>
+    <div class="cards">
+      <div class="card"><div class="chip b">1</div><div>
+        <h3>대용량 출력 격리</h3>
+        <p>"테스트 스위트 전체 돌리고, <b style="color:#D9D9DE">실패한 것만</b> 에러 메시지와 함께 보고해줘" — 테스트 · 로그 · 문서 수집처럼 장황한 출력은 밖에서 소화시킨다.</p>
+      </div></div>
+      <div class="card"><div class="chip g">2</div><div>
+        <h3>병렬 리서치</h3>
+        <p>"인증 · DB · API 모듈을 <b style="color:#D9D9DE">각각 서브에이전트로 동시에</b> 조사해줘" — 서로 의존이 없는 조사에 최적. 각자 끝나면 메인 Claude가 종합한다.</p>
+      </div></div>
+      <div class="card"><div class="chip p">3</div><div>
+        <h3>체이닝 (파이프라인)</h3>
+        <p>"code-reviewer로 성능 문제 찾고 → <b style="color:#D9D9DE">optimizer로 수정</b>해줘" — 앞 에이전트의 결과를 다음 에이전트에 넘기는 단계별 워크플로.</p>
+      </div></div>
+    </div>
+    <div class="note">단, 여러 에이전트가 <b>상세 결과를 잔뜩 돌려주면 그것도 컨텍스트 소모</b>다. "핵심만 요약해 보고"를 습관처럼 붙이자.</div>
+  </div>
+  <div class="takeaway">무거운 작업은 밖에서, 결론만 안으로</div>
+</section>
+
+<!-- ═══════════ 13 · WHEN NOT ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">13</div>
+  <div class="body">
+    <div class="eyebrow">판단 기준 · WHEN NOT</div>
+    <h1>쓰지 <em>말아야</em> 할 때도 있다</h1>
+    <div class="grid2">
+      <div class="gcard">
+        <div class="gh"><span class="em">🧭</span><h3>이럴 땐 그냥 메인에서</h3></div>
+        <ul style="margin-top:4px">
+          <li style="font-size:14.5px;margin-top:9px"><b>왕복 피드백이 잦은 작업</b> — 위임하면 오히려 느려진다</li>
+          <li style="font-size:14.5px;margin-top:9px"><b>계획 → 구현 → 테스트가 같은 맥락을 공유</b>할 때 — 쪼개면 맥락이 끊긴다</li>
+          <li style="font-size:14.5px;margin-top:9px"><b>빠른 단건 수정</b> — 서브에이전트는 매번 컨텍스트를 새로 모은다 (지연 비용)</li>
+        </ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">⚠️</span><h3>위임할 때 기억할 것</h3></div>
+        <ul style="margin-top:4px">
+          <li style="font-size:14.5px;margin-top:9px"><b>호출마다 새 인스턴스 = 이전 기억 없음</b> — 이어가려면 "아까 그 리뷰 이어서" (재개 가능)</li>
+          <li style="font-size:14.5px;margin-top:9px"><b>돌려받는 리포트도 컨텍스트 비용</b> — 요약 형식을 프롬프트에 못 박기</li>
+          <li style="font-size:14.5px;margin-top:9px"><b>도구는 최소만</b> — 안전과 집중, 둘 다를 위해</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">메인 컨텍스트에서 돌릴 재사용 워크플로라면 <b>Skills</b>가, 대화 중 곁다리 질문 하나라면 <code>/btw</code>가 더 낫다. 도구는 목적에 맞게.</div>
+  </div>
+  <div class="takeaway">위임이 항상 정답은 아니다</div>
+</section>
+
+<!-- ═══════════ 14 · ADVANCED ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">14</div>
+  <div class="body">
+    <div class="eyebrow">고급 기능 · ADVANCED 2026</div>
+    <h1>서브에이전트는 계속 <em>진화 중</em></h1>
+    <div class="grid2">
+      <div class="gcard">
+        <div class="gh"><span class="em">🪆</span><h3>중첩 위임</h3></div>
+        <p>서브에이전트가 <b>또 서브에이전트를 부른다</b> (최대 깊이 5). 리뷰어가 발견 건마다 검증 에이전트를 파견하는 식 — 중간 산출물은 내 대화에 오지 않는다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🔁</span><h3>이어서 작업 (Resume)</h3></div>
+        <p>끝난 에이전트를 <b>대화 이력째 재개</b>할 수 있다. "그 리뷰 이어서, 이번엔 인가 로직 봐줘" 한마디면 이전 맥락 그대로 계속.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🧠</span><h3>영속 메모리</h3></div>
+        <p><code style="font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px">memory: project</code>를 주면 배운 패턴이 <b>세션이 끝나도 쌓인다</b>. 쓸수록 우리 코드베이스에 밝아지는 팀원.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🌿</span><h3>포크 (/fork)</h3></div>
+        <p><b>지금 대화를 통째로 복제</b>해 곁가지 작업을 시킨다. 배경 설명이 필요 없고, 프롬프트 캐시를 공유해 새 에이전트보다 저렴.</p>
+      </div>
+    </div>
+    <div class="note"><code>isolation: worktree</code>를 주면 저장소 사본(git worktree)에서 실행 — 내 체크아웃을 건드리지 않고 안전하게 실험시킬 수 있다.</div>
+  </div>
+  <div class="takeaway">서브에이전트도 이제 팀을 꾸린다</div>
+</section>
+
+<!-- ═══════════ 15 · TAKEAWAY ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">15</div>
+  <div class="body">
+    <div class="eyebrow">핵심 · TAKEAWAY</div>
+    <h1>결국 <em>좋은 위임</em>의 원칙이다</h1>
+    <div class="cards" style="gap:13px">
+      <div class="sum"><span class="n">1</span><span class="k"><em>격</em>리</span><span class="d">소음은 서브에이전트 컨텍스트에 가두고, 메인에는 요약만 들인다</span></div>
+      <div class="sum"><span class="n">2</span><span class="k"><em>정</em>의</span><span class="d">마크다운 파일 하나에 역할 · description · 도구 · 모델을 명시한다</span></div>
+      <div class="sum"><span class="n">3</span><span class="k"><em>위</em>임</span><span class="d">평소엔 자동에 맡기고, 확실해야 할 땐 <code>@agent-이름</code>으로 지목한다</span></div>
+      <div class="sum"><span class="n">4</span><span class="k"><em>절</em>제</span><span class="d">왕복이 잦고 맥락 공유가 큰 일은 위임하지 않는다 — 메인이 정답</span></div>
+    </div>
+  </div>
+  <div class="takeaway">기본기를 지키는 사람이 서브에이전트를 가장 잘 쓴다</div>
+</section>
+
+<!-- ═══════════ 16 · PRACTICE ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="pagenum">16</div>
+  <div class="body">
+    <div class="eyebrow">실습 · HANDS-ON</div>
+    <h1>오늘의 <em>실습 미션</em></h1>
+    <div class="cards">
+      <div class="card"><div class="chip b">1</div><div style="flex:1">
+        <h3>나만의 code-reviewer 만들기</h3>
+        <p>Claude에게 한 문장으로 요청 → <code>~/.claude/agents/</code>에 생성된 파일을 열어 <b style="color:#D9D9DE">description을 우리말로 구체화</b>해 본다.</p>
+      </div><span class="time">10분</span></div>
+      <div class="card"><div class="chip g">2</div><div style="flex:1">
+        <h3>@멘션으로 지목 호출</h3>
+        <p><code>@agent-code-reviewer</code>로 최근 변경분 리뷰를 시키고, Critical / Warning / Suggestion 리포트를 받아 본다.</p>
+      </div><span class="time">5분</span></div>
+      <div class="card"><div class="chip p">3</div><div style="flex:1">
+        <h3>병렬 위임 체험</h3>
+        <p>모듈 2~3개를 <b style="color:#D9D9DE">각각 서브에이전트로 동시에</b> 조사시켜 보고, <code>/context</code>로 메인 컨텍스트 사용량이 얼마나 절약됐는지 확인한다.</p>
+      </div><span class="time">10분</span></div>
+    </div>
+    <div class="note">막히면 이 슬라이드 9 · 10페이지의 프롬프트를 그대로 복사해서 시작해도 좋다.</div>
+  </div>
+  <div class="takeaway">오늘 하나는 직접 만들어 본다</div>
+</section>
+
+<!-- ═══════════ 17 · OUTRO ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#서브에이전트</div>
+  </header>
+  <div class="outro">
+    <div class="eb">WRAP-UP</div>
+    <h1>혼자 일하던 Claude에게<br><em>전문가 팀</em>을 붙여주세요</h1>
+    <div class="d">컨텍스트는 가볍게, 결과는 깊게 —<br>오늘 배운 서브에이전트로 나만의 워크플로우를 완성해 보세요</div>
+    <div class="avatar"><svg style="width:52px;height:52px;color:var(--orange)"><use href="#spark"/></svg></div>
+    <div class="cta">Q&amp;A · 질문 환영</div>
+    <div class="promo">
+      <div class="th">CLAUDE<br>CODE<br>MASTER</div>
+      <div>
+        <div class="pt">클로드 코드 완벽 마스터</div>
+        <div class="pd"><span class="hot">출시 7개월 만에 수강생 8,500명+ 돌파</span> · 서브에이전트 심화편으로 이어집니다</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /stage -->
+
+<div class="hud">
+  <span class="cnt" id="cnt">01 / 17</span>
+  <button id="prev" aria-label="이전 슬라이드">‹</button>
+  <button id="next" aria-label="다음 슬라이드">›</button>
+  <button id="fs" aria-label="전체화면 (F)" style="display:grid;place-items:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="display:block"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+<div class="hint"><b>← →</b> 슬라이드 이동 &nbsp;·&nbsp; <b>F</b> 전체화면 &nbsp;·&nbsp; <b>Ctrl+P</b> PDF 저장</div>
+<div class="progress" id="prog"></div>
+</div><!-- /deck -->
+
+<script>
+(function(){
+  var stage=document.getElementById('stage');
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var cnt=document.getElementById('cnt');
+  var prog=document.getElementById('prog');
+  var cur=0, N=slides.length;
+
+  function pad(n){return String(n).padStart(2,'0');}
+  function go(n){
+    n=Math.max(0,Math.min(N-1,n));
+    if(n===cur && slides[n].classList.contains('active')){update();return;}
+    slides[cur].classList.remove('active');
+    cur=n;
+    slides[cur].classList.add('active');
+    update();
+  }
+  function update(){
+    cnt.textContent=pad(cur+1)+' / '+pad(N);
+    prog.style.width=(N>1?(cur/(N-1))*100:100)+'%';
+    try{if(history.replaceState){history.replaceState(null,'','#'+(cur+1));}}catch(e){/* 샌드박스(미리보기)에서는 URL 갱신 불가 — 무시 */}
+  }
+  function next(){go(cur+1);}
+  function prev(){go(cur-1);}
+
+  function fit(){
+    var s=Math.min(window.innerWidth/1280, window.innerHeight/720);
+    stage.style.transform='translate(-50%,-50%) scale('+s+')';
+  }
+  window.addEventListener('resize',fit);
+  fit();
+
+  // ── 안전장치: 폰트 대체·번역 등으로 내용이 넘치면 본문만 살짝 축소 ──
+  function fitBodies(){
+    for(var i=0;i<N;i++){
+      var b=slides[i].querySelector('.body');
+      if(!b) continue;
+      b.style.transform='none';
+      var kids=b.children;
+      if(!kids.length) continue;
+      var last=kids[kids.length-1];
+      var need=last.offsetTop+last.offsetHeight-b.offsetTop;
+      var avail=b.clientHeight;
+      if(need>avail+1){
+        var k=Math.max(.72, avail/need);
+        b.style.transformOrigin='top center';
+        b.style.transform='scale('+k+')';
+      }
+    }
+  }
+  window.addEventListener('resize',fitBodies);
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fitBodies);}
+  setTimeout(fitBodies,60);
+  fitBodies();
+
+  document.getElementById('next').addEventListener('click',next);
+  document.getElementById('prev').addEventListener('click',prev);
+
+  var toastEl=null,toastT=null;
+  function toast(msg){
+    if(!toastEl){toastEl=document.createElement('div');toastEl.className='toast';document.body.appendChild(toastEl);}
+    toastEl.textContent=msg;
+    toastEl.classList.add('on');
+    clearTimeout(toastT);
+    toastT=setTimeout(function(){toastEl.classList.remove('on');},3000);
+  }
+  function fsBlocked(){toast('이 미리보기 창에서는 전체화면이 차단돼 있어요 — 파일을 다운로드해 브라우저에서 열면 사용할 수 있습니다');}
+  function toggleFs(){
+    var d=document,el=d.documentElement;
+    var inFs=d.fullscreenElement||d.webkitFullscreenElement;
+    try{
+      if(inFs){(d.exitFullscreen||d.webkitExitFullscreen).call(d);return;}
+      var req=el.requestFullscreen||el.webkitRequestFullscreen;
+      if(!req){fsBlocked();return;}
+      var p=req.call(el);
+      if(p&&p.catch){p.catch(fsBlocked);}
+    }catch(err){fsBlocked();}
+  }
+  document.getElementById('fs').addEventListener('click',toggleFs);
+
+  window.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'||e.key===' '){e.preventDefault();next();}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();prev();}
+    else if(e.key==='Home'){e.preventDefault();go(0);}
+    else if(e.key==='End'){e.preventDefault();go(N-1);}
+    else if(e.key==='f'||e.key==='F'){toggleFs();}
+  });
+
+  var tx=null;
+  window.addEventListener('touchstart',function(e){tx=e.changedTouches[0].clientX;},{passive:true});
+  window.addEventListener('touchend',function(e){
+    if(tx===null)return;
+    var dx=e.changedTouches[0].clientX-tx;
+    if(dx<-50)next(); else if(dx>50)prev();
+    tx=null;
+  },{passive:true});
+
+  var h=parseInt((location.hash||'').replace('#',''),10);
+  if(!isNaN(h)&&h>=1&&h<=N){slides[0].classList.remove('active');cur=h-1;slides[cur].classList.add('active');}
+  update();
+})();
+</script>
+</body>
+</html>

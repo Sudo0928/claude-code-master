@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Hooks 완벽 가이드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --bg:#0B0B0D;
+  --panel:#161619;
+  --panel2:#1D1D22;
+  --line:#2A2A2F;
+  --line-soft:#1E1E23;
+  --orange:#FF5B1F;
+  --orange-hi:#FF8A57;
+  --orange-soft:rgba(255,91,31,.12);
+  --orange-bd:rgba(255,91,31,.38);
+  --txt:#F3F2EF;
+  --muted:#A2A2AB;
+  --dim:#77777F;
+  --cream:#F6F1E7;
+  --blue:#3D6FE0;
+  --green:#22A96B;
+  --purple:#8B5CF6;
+  --amber:#E8930C;
+  --red:#E14B3C;
+  --mono:'JetBrains Mono','SF Mono','Cascadia Code','D2Coding',Consolas,ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:#050506;
+  font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+  color:var(--txt);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+.deck{position:fixed;inset:0}
+.stage{
+  position:absolute;left:50%;top:50%;
+  width:1280px;height:720px;
+  transform:translate(-50%,-50%) scale(1);
+  transform-origin:center center;
+  background:var(--bg);
+  border-radius:6px;
+  overflow:hidden;
+  box-shadow:0 30px 90px rgba(0,0,0,.6);
+}
+
+/* ---------- slide frame ---------- */
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  opacity:0;visibility:hidden;
+  transform:translateY(16px);
+  transition:opacity .38s ease,transform .38s ease,visibility .38s;
+  pointer-events:none;
+}
+.slide.active{opacity:1;visibility:visible;transform:translateY(0);pointer-events:auto}
+
+.bar{
+  height:56px;flex:none;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 44px;
+  border-bottom:1px solid var(--line-soft);
+  background:rgba(11,11,13,.9);
+  z-index:5;
+}
+.brand{display:flex;align-items:center;gap:11px;font-size:14.5px}
+.brand .logo{width:19px;height:19px;flex:none;display:block}
+.brand b{font-weight:800;letter-spacing:-.2px}
+.brand i{font-style:normal;color:#3A3A40}
+.brand span{color:var(--muted);font-weight:500}
+.tag{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+
+.pagenum{
+  position:absolute;top:74px;right:48px;
+  font-size:14px;font-weight:700;color:#5C5C64;letter-spacing:.12em;
+  font-family:var(--mono);
+}
+.body{flex:1;min-height:0;padding:30px 64px 0;display:flex;flex-direction:column}
+.eyebrow{
+  color:var(--orange);font-size:15px;font-weight:800;letter-spacing:.14em;
+  margin-bottom:14px;
+}
+h1{font-size:41px;line-height:1.24;font-weight:800;letter-spacing:-.6px;margin-bottom:24px}
+h1 em{font-style:normal;color:var(--orange)}
+.lead{font-size:16.5px;color:var(--muted);line-height:1.62;margin:-8px 0 22px;max-width:980px}
+.lead b{color:#D8D8DC;font-weight:700}
+
+.takeaway{
+  flex:none;margin:auto 64px 32px;
+  background:var(--orange-soft);
+  border:1px solid var(--orange-bd);
+  border-radius:10px;
+  padding:13px 20px;text-align:center;
+  font-size:17px;font-weight:800;color:var(--orange);
+  letter-spacing:-.2px;
+}
+.takeaway b{color:var(--orange-hi)}
+
+/* ---------- numbered cards ---------- */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:13px;padding:16px 22px;
+  display:flex;gap:17px;align-items:flex-start;
+}
+.chip{
+  width:31px;height:31px;border-radius:8px;flex:none;margin-top:2px;
+  display:grid;place-items:center;
+  font-weight:800;font-size:15px;color:#fff;font-family:var(--mono);
+}
+.chip.b{background:var(--blue)} .chip.g{background:var(--green)}
+.chip.p{background:var(--purple)} .chip.a{background:var(--amber)}
+.chip.r{background:var(--red)} .chip.o{background:var(--orange)}
+.card h3{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.card h3 code{font-family:var(--mono);font-size:16px;color:var(--orange-hi);font-weight:700}
+.card p{font-size:14.5px;color:var(--muted);margin-top:5px;line-height:1.55}
+.card p code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+/* ---------- before/after vs ---------- */
+.vs{display:grid;grid-template-columns:1fr 52px 1fr;align-items:stretch}
+.vsbox{border-radius:15px;padding:24px 28px}
+.vsbox.was{background:#211311;border:1px solid #3C221B}
+.vsbox.now{background:#0E1727;border:1px solid #2B4A88}
+.vsbox .k{font-size:13.5px;font-weight:800;letter-spacing:.06em;margin-bottom:10px}
+.vsbox.was .k{color:#E0876A}
+.vsbox.now .k{color:#6FA1FF}
+.vsbox .t{font-size:22px;font-weight:800;letter-spacing:-.4px;line-height:1.35}
+.vsbox .d{font-size:14.5px;color:var(--muted);margin-top:9px;line-height:1.55}
+.vsarr{display:grid;place-items:center;color:#E4E4E8;font-size:26px}
+
+/* ---------- terminal / editor mockup ---------- */
+.term{background:#0D0D10;border:1px solid #26262C;border-radius:13px;overflow:hidden}
+.term .tb{
+  height:38px;display:flex;align-items:center;gap:8px;padding:0 15px;
+  background:#141418;border-bottom:1px solid #212127;
+}
+.dot{width:11px;height:11px;border-radius:50%}
+.dot.r{background:#FF5F57}.dot.y{background:#FEBC2E}.dot.g{background:#28C840}
+.term .tt{font-size:12.5px;color:#84848C;margin-left:7px;font-weight:600}
+.term pre{
+  margin:0;padding:18px 24px;
+  font-family:var(--mono);font-size:13.5px;line-height:1.8;
+  color:#D9D9DF;white-space:pre-wrap;word-break:break-all;
+}
+.term pre .p{color:var(--orange);font-weight:700}
+.term pre .k{color:#FF9264}
+.term pre .s{color:#8CD49A}
+.term pre .c{color:#67676F}
+.term pre .dm{color:#8A8A93}
+.term pre .ok{color:#3ACB82}
+.term pre .hl{color:#FFD9C4}
+
+/* light mac window (slack풍) */
+.win{background:#FFFFFF;border-radius:13px;overflow:hidden;color:#1C1C1E;box-shadow:0 14px 44px rgba(0,0,0,.45)}
+.win .tb{height:38px;display:flex;align-items:center;gap:8px;padding:0 15px;background:#F1EFEC;border-bottom:1px solid #E2DFDA}
+.win .tt{font-size:12.5px;color:#6E6A64;margin-left:7px;font-weight:600}
+
+/* ---------- table ---------- */
+.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.tbl th{
+  text-align:left;color:#87878F;font-weight:700;font-size:12.5px;letter-spacing:.08em;
+  padding:11px 18px;border-bottom:1px solid var(--line);background:#19191D;
+}
+.tbl td{padding:11.5px 18px;border-bottom:1px solid var(--line-soft);vertical-align:top;line-height:1.5}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .mono{font-family:var(--mono);font-size:13px;color:#FFC29E;white-space:nowrap}
+.tbl .mut{color:var(--muted)}
+.pill{display:inline-block;font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:.04em}
+.pill.req{background:rgba(255,91,31,.16);color:#FF8A57}
+.pill.opt{background:#222228;color:#8F8F98}
+
+/* ---------- 3-col grid cards ---------- */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:20px 22px}
+.gcard .gh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.gcard .gh .em{font-size:21px}
+.gcard h3{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.gcard h3 code{font-family:var(--mono);font-size:15.5px;color:var(--orange-hi)}
+.gcard .meta{font-family:var(--mono);font-size:11.5px;color:#8B8B94;background:#101013;border:1px solid #232329;border-radius:7px;padding:6px 10px;margin:9px 0 10px;line-height:1.6}
+.gcard p{font-size:13.8px;color:var(--muted);line-height:1.58}
+.gcard p b{color:#D9D9DE}
+.gcard ul{list-style:none;margin-top:8px}
+.gcard ul li{font-size:13.5px;color:var(--muted);line-height:1.55;padding-left:15px;position:relative;margin-top:5px}
+.gcard ul li::before{content:"·";color:var(--orange);position:absolute;left:2px;font-weight:800}
+
+.note{position:relative;padding-left:22px;font-size:13.5px;color:#8D8D96;line-height:1.55;margin-top:15px}
+.note::before{content:"＊";position:absolute;left:0;top:0;color:var(--orange);font-weight:800}
+.note code{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#1E1E23;padding:1px 6px;border-radius:5px}
+.note b{color:#C9C9CF}
+
+/* ---------- cover ---------- */
+.cover-top{flex:1;min-height:0;background:var(--cream);position:relative;display:grid;place-items:center}
+.cover-bot{flex:none;background:#070708;padding:32px 64px 40px;border-top:1px solid #000}
+.badge{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:13px;font-weight:800;letter-spacing:.03em;
+  padding:6px 13px;border-radius:7px;margin-bottom:16px;
+}
+.cover-bot h1{font-size:52px;line-height:1.18;letter-spacing:-1.2px;margin-bottom:14px}
+.cover-bot .sub{font-size:17.5px;color:var(--muted)}
+.cover-bot .sub b{color:#EDEDEF}
+
+/* ---------- flow diagram(dark) ---------- */
+.flowwrap{background:#101013;border:1px solid var(--line);border-radius:15px;padding:10px 8px}
+
+/* ---------- two column layout helper ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.cols-64{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
+
+/* mission time chip */
+.time{margin-left:auto;flex:none;font-family:var(--mono);font-size:12px;font-weight:700;color:#8F8F98;background:#111114;border:1px solid #26262C;padding:5px 11px;border-radius:20px}
+
+/* ---------- outro ---------- */
+.outro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:16px}
+.outro .eb{color:var(--orange);font-size:14.5px;font-weight:800;letter-spacing:.22em;margin-bottom:16px}
+.outro h1{font-size:40px;line-height:1.3;margin-bottom:14px}
+.outro .d{font-size:15.5px;color:var(--muted);line-height:1.65;margin-bottom:26px}
+.avatar{
+  width:118px;height:118px;border-radius:50%;
+  background:#141417;border:3px solid var(--orange);
+  display:grid;place-items:center;font-size:56px;margin-bottom:22px;
+  box-shadow:0 0 0 7px rgba(255,91,31,.09);
+}
+.cta{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:16.5px;font-weight:800;padding:13px 42px;border-radius:32px;
+  letter-spacing:-.2px;margin-bottom:26px;
+}
+.promo{
+  display:flex;align-items:center;gap:16px;text-align:left;
+  background:#121215;border:1px solid var(--line);border-radius:14px;
+  padding:14px 22px;
+}
+.promo .th{
+  width:92px;height:56px;border-radius:9px;flex:none;
+  background:linear-gradient(135deg,#2B1B4E,#0E0E12 60%);
+  border:1px solid #3A2E63;
+  display:grid;place-items:center;color:#C9B8FF;
+  font-family:var(--mono);font-size:9.5px;font-weight:800;text-align:center;line-height:1.5;
+}
+.promo .pt{font-size:16px;font-weight:800}
+.promo .pd{font-size:13px;color:var(--muted);margin-top:3px}
+.promo .hot{color:var(--orange);font-weight:800}
+
+.tbl{table-layout:fixed}
+.grid3>*,.grid2>*,.cols>*,.cols-64>*{min-width:0}
+
+/* ---------- controls ---------- */
+.hud{position:fixed;right:22px;bottom:16px;display:flex;align-items:center;gap:10px;z-index:50;user-select:none}
+.hud .cnt{font-family:var(--mono);font-size:12.5px;color:#6E6E76;letter-spacing:.08em;margin-right:2px}
+.hud button{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid #303036;background:#121215;color:#C9C9CF;
+  font-size:16px;cursor:pointer;transition:.18s;
+}
+.hud button:hover{border-color:var(--orange);color:var(--orange)}
+.hint{position:fixed;left:22px;bottom:21px;font-size:12px;color:#55555C;z-index:50;user-select:none}
+.toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%) translateY(8px);background:#1A1A1E;border:1px solid #3A3A40;color:#EDEDEF;font-size:13px;padding:10px 18px;border-radius:10px;z-index:60;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:80%;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.hint b{color:#7C7C84;font-weight:700}
+.progress{position:fixed;left:0;bottom:0;height:3px;background:var(--orange);width:0%;z-index:60;transition:width .3s ease}
+
+/* ---------- print ---------- */
+@media print{
+  body{overflow:visible;background:#0B0B0D}
+  .hud,.hint,.progress,.toast{display:none!important}
+  .deck{position:static}
+  .stage{position:static;transform:none!important;width:1280px;height:auto;box-shadow:none;border-radius:0;overflow:visible;left:auto;top:auto;margin:0 auto}
+  .slide{position:relative;opacity:1!important;visibility:visible!important;transform:none!important;width:1280px;height:720px;page-break-after:always;break-inside:avoid}
+}
+@page{size:1280px 720px;margin:0}
+.sum{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:17px 24px;display:flex;align-items:center;gap:22px}
+.sum .n{font-family:var(--mono);font-size:15px;font-weight:800;color:#6C6C74;flex:none}
+.sum .k{font-size:21px;font-weight:800;letter-spacing:-.3px;width:96px;flex:none}
+.sum .k em{font-style:normal;color:var(--orange)}
+.sum .d{font-size:15px;color:var(--muted);line-height:1.5}
+.sum .d code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+/* ---------- hooks deck 전용 ---------- */
+.exit{display:flex;gap:14px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 20px;margin-bottom:11px}
+.exit .code{font-family:var(--mono);font-size:15px;font-weight:800;color:#fff;background:#2A2A31;border-radius:8px;padding:5px 11px;flex:none;min-width:74px;text-align:center}
+.exit .code.ok{background:var(--green)} .exit .code.no{background:var(--red)} .exit .code.warn{background:#3A3A42;color:#B6B6BF}
+.exit h3{font-size:17px;font-weight:800;letter-spacing:-.3px}
+.exit p{font-size:13.8px;color:var(--muted);margin-top:4px;line-height:1.55}
+.exit p code,.lead code{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+.kbd{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#1E1E23;border:1px solid #2C2C33;padding:2px 7px;border-radius:6px}
+.tbl.tight th,.tbl.tight td{padding:9px 18px}
+.gcard.warn{border-color:#4A2A24;background:#191211}
+.gcard.warn h3{color:#FF8A57}
+</style>
+</head>
+<body>
+<div class="deck">
+<div class="stage" id="stage">
+<svg style="display:none" aria-hidden="true"><symbol id="spark" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2.7" stroke-linecap="round" fill="none"><path d="M12 2.6v18.8M2.6 12h18.8M5.4 5.4l13.2 13.2M18.6 5.4L5.4 18.6"/></g></symbol></svg>
+
+<!-- ═══════════ 01 · COVER ═══════════ -->
+<section class="slide active">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="cover-top">
+    <div style="width:78%">
+      <svg viewBox="0 0 1000 340" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <g id="wspark"><g stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" fill="none">
+            <path d="M0 -11v22M-11 0h22M-7.8 -7.8l15.6 15.6M7.8 -7.8L-7.8 7.8"/></g></g>
+          <marker id="carr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#A29A89"/></marker>
+        </defs>
+        <text x="500" y="14" text-anchor="middle" font-size="12" font-weight="700" fill="#948C7A" font-family="inherit">CLAUDE CODE · 한 턴의 흐름</text>
+        <!-- 흐름 노드 -->
+        <rect x="40" y="30" width="150" height="58" rx="13" fill="none" stroke="#4A453B" stroke-width="1.8"/>
+        <text x="115" y="65" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3F3A31" font-family="inherit">사용자 프롬프트</text>
+        <line x1="192" y1="59" x2="279" y2="59" stroke="#A29A89" stroke-width="1.6" marker-end="url(#carr)"/>
+        <rect x="285" y="30" width="150" height="58" rx="13" fill="none" stroke="#4A453B" stroke-width="1.8"/>
+        <text x="360" y="65" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3F3A31" font-family="inherit">Claude 판단</text>
+        <line x1="437" y1="59" x2="529" y2="59" stroke="#A29A89" stroke-width="1.6" marker-end="url(#carr)"/>
+        <rect x="535" y="30" width="150" height="58" rx="13" fill="none" stroke="#4A453B" stroke-width="1.8"/>
+        <text x="610" y="65" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3F3A31" font-family="inherit">도구 실행</text>
+        <line x1="687" y1="59" x2="784" y2="59" stroke="#A29A89" stroke-width="1.6" marker-end="url(#carr)"/>
+        <rect x="790" y="30" width="150" height="58" rx="13" fill="none" stroke="#4A453B" stroke-width="1.8"/>
+        <text x="865" y="65" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3F3A31" font-family="inherit">응답 완료</text>
+        <!-- 훅 지점 -->
+        <rect x="18" y="126" width="964" height="190" rx="16" fill="none" stroke="#B7AF9F" stroke-width="1.6" stroke-dasharray="7 6"/>
+        <text x="42" y="152" font-size="11.5" font-weight="700" fill="#948C7A" font-family="inherit">HOOKS · 내 코드가 끼어드는 지점</text>
+        <path d="M115 88V170M360 88V170M610 88V170M865 88V170" stroke="#B7AF9F" stroke-width="1.5" stroke-dasharray="5 5" fill="none"/>
+        <rect x="89" y="170" width="52" height="52" rx="13" fill="#FF5B1F"/><use href="#wspark" transform="translate(115,196) scale(.86)"/>
+        <rect x="334" y="170" width="52" height="52" rx="13" fill="#FF5B1F"/><use href="#wspark" transform="translate(360,196) scale(.86)"/>
+        <rect x="584" y="170" width="52" height="52" rx="13" fill="#FF5B1F"/><use href="#wspark" transform="translate(610,196) scale(.86)"/>
+        <rect x="839" y="170" width="52" height="52" rx="13" fill="#FF5B1F"/><use href="#wspark" transform="translate(865,196) scale(.86)"/>
+        <text x="115" y="246" text-anchor="middle" font-size="12.5" fill="#6E6858" font-family="ui-monospace,monospace">UserPromptSubmit</text>
+        <text x="360" y="246" text-anchor="middle" font-size="12.5" fill="#6E6858" font-family="ui-monospace,monospace">PreToolUse</text>
+        <text x="610" y="246" text-anchor="middle" font-size="12.5" fill="#6E6858" font-family="ui-monospace,monospace">PostToolUse</text>
+        <text x="865" y="246" text-anchor="middle" font-size="12.5" fill="#6E6858" font-family="ui-monospace,monospace">Stop</text>
+        <text x="115" y="268" text-anchor="middle" font-size="10.5" fill="#948C7A" font-family="inherit">컨텍스트 주입 · 검사</text>
+        <text x="360" y="268" text-anchor="middle" font-size="10.5" fill="#948C7A" font-family="inherit">위험한 실행 차단</text>
+        <text x="610" y="268" text-anchor="middle" font-size="10.5" fill="#948C7A" font-family="inherit">자동 포맷 · 린트</text>
+        <text x="865" y="268" text-anchor="middle" font-size="10.5" fill="#948C7A" font-family="inherit">완료 조건 검증</text>
+        <text x="500" y="304" text-anchor="middle" font-size="11.5" font-weight="700" fill="#8C8474" font-family="inherit">이벤트가 뜰 때마다 · 자동으로 · 예외 없이</text>
+      </svg>
+    </div>
+  </div>
+  <div class="cover-bot">
+    <span class="badge">• 클로드 코드 완벽 마스터 · 수업 자료</span>
+    <h1>부탁하지 말고<br><em style="color:var(--orange);font-style:normal">Hooks</em>로 확정하라</h1>
+    <div class="sub">Claude Code의 행동을 <b>내 코드로 강제하는 법</b> &nbsp;·&nbsp; 공식 문서 기반 · 2026.07</div>
+  </div>
+</section>
+
+<!-- ═══════════ 02 · WHY ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">02</div>
+  <div class="body">
+    <div class="eyebrow">문제 인식 · WHY</div>
+    <h1>CLAUDE.md에 적어놨는데 <em>왜 안 지키지?</em></h1>
+    <div class="lead">"커밋 전에 테스트 돌려", "<b>.env</b>는 절대 건드리지 마" — 분명히 적어뒀는데 열 번 중 아홉 번만 지킨다. 프롬프트는 <b>지시가 아니라 부탁</b>이기 때문이다. 지켜야만 하는 규칙이라면, 모델의 판단에서 꺼내 <b>코드로 내려야</b> 한다.</div>
+    <div class="vs">
+      <div class="vsbox was">
+        <div class="k">지금까지 · 프롬프트로 부탁</div>
+        <div class="t">"이렇게 해줘"라고<br>매번 적어둔다</div>
+        <div class="d">대화가 길어지면 잊고, 컨텍스트가 밀리면 사라진다. 지켰는지 확인하는 것도 결국 사람 몫. <b style="color:#F0B49B">확률적</b>이다.</div>
+      </div>
+      <div class="vsarr">→</div>
+      <div class="vsbox now">
+        <div class="k">이제부터 · 훅으로 강제</div>
+        <div class="t">특정 시점에<br>내 코드가 무조건 실행</div>
+        <div class="d">포맷·검증·차단·알림이 앱 레벨에서 돌아간다. 모델이 협조하든 말든 <b style="color:#CFE0FF">항상 실행</b>된다.</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">부탁은 확률, 훅은 <b>보장</b>이다</div>
+</section>
+
+<!-- ═══════════ 03 · WHAT ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">03</div>
+  <div class="body">
+    <div class="eyebrow">개념 정의 · WHAT</div>
+    <h1>훅(Hook)은 <em>라이프사이클 이벤트 핸들러</em>다</h1>
+    <div class="lead">Claude Code가 일하는 도중 정해진 시점마다 자동으로 실행되는 <b>내가 정의한 명령</b>. 도구를 쓸지 말지 모델이 고르는 게 아니라, 내가 건 조건에 맞으면 <b>무조건</b> 뛴다.</div>
+    <div class="cards">
+      <div class="card"><div class="chip b">1</div><div>
+        <h3>실행 시점이 정해져 있다</h3>
+        <p>세션 시작, 프롬프트 제출, 도구 실행 전후, 응답 종료… <b style="color:#D9D9DE">30가지가 넘는 이벤트</b> 중에서 고른다. 이벤트가 뜨고 매처가 맞으면 그때 실행된다.</p>
+      </div></div>
+      <div class="card"><div class="chip g">2</div><div>
+        <h3>결정론적이다 — LLM의 판단이 아니다</h3>
+        <p>규칙을 프롬프트가 아니라 <b style="color:#D9D9DE">앱 레벨 코드</b>로 바꾸는 일. 그래서 "기대할 때마다 매번" 실행된다.</p>
+      </div></div>
+      <div class="card"><div class="chip p">3</div><div>
+        <h3>JSON으로 듣고, 종료 코드로 답한다</h3>
+        <p>이벤트 정보가 <code>stdin</code>에 JSON으로 들어오고, 스크립트는 <b style="color:#D9D9DE">종료 코드</b>나 stdout JSON으로 "통과·차단·이 말 전해줘"를 돌려준다.</p>
+      </div></div>
+      <div class="card"><div class="chip a">4</div><div>
+        <h3>설정 파일 한 줄이면 끝난다</h3>
+        <p><code>settings.json</code>에 선언하는 게 전부. 프로젝트에 커밋하면 <b style="color:#D9D9DE">팀 전체가 같은 규칙</b> 아래서 일한다.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="takeaway">훅은 '제안'을 <b>실행되는 코드</b>로 바꾼다</div>
+</section>
+
+<!-- ═══════════ 04 · 역할 분담 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">04</div>
+  <div class="body">
+    <div class="eyebrow">역할 분담 · WHERE IT FITS</div>
+    <h1>CLAUDE.md · 권한 · 훅, <em>뭘 어디에 쓰나</em></h1>
+    <div class="lead">셋 다 Claude의 행동을 다루지만 성격이 완전히 다르다. <b>정적인 규칙은 위로, 강제해야 할 건 아래로</b> 내려보내는 게 원칙이다.</div>
+    <div class="grid3">
+      <div class="gcard">
+        <div class="gh"><span class="em">📝</span><h3>CLAUDE.md</h3></div>
+        <div class="meta">성격 · 설득 (soft)</div>
+        <p><b>변하지 않는 프로젝트 관례.</b> 스크립트를 돌리지 않고 그냥 읽힌다. 강제력은 없지만 비용도 없다.</p>
+        <ul>
+          <li>코딩 컨벤션, 디렉터리 구조 설명</li>
+          <li>"이 저장소는 bun을 쓴다"</li>
+          <li>항상 참인 정적 정보의 표준 위치</li>
+        </ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🚧</span><h3>권한 규칙</h3></div>
+        <div class="meta">성격 · 필터 (hard)</div>
+        <p><b>정적인 allow / ask / deny.</b> 하드 차단이 필요하면 훅이 아니라 여기다. deny 규칙은 훅의 allow보다 세다.</p>
+        <ul>
+          <li>도구 이름·인자 패턴으로 허용/거부</li>
+          <li>조직 관리 설정으로 배포 가능</li>
+          <li>판단이 필요 없는 정책은 전부 여기</li>
+        </ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">⚡</span><h3>Hooks</h3></div>
+        <div class="meta">성격 · 강제 + 반응 (dynamic)</div>
+        <p><b>동적 검사와 사후 반응.</b> 규칙으로 표현 못 하는 것, 그리고 "끝난 뒤에 해야 하는 일"이 훅의 영역이다.</p>
+        <ul>
+          <li>편집 직후 포맷·린트·테스트</li>
+          <li>명령 내용을 읽고 조건부 차단</li>
+          <li>로깅·감사·알림·컨텍스트 주입</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">확장 수단은 더 있다 — 절차 지식은 <b>Skills</b>, 무거운 작업 격리는 <b>서브에이전트</b>, 이 셋을 묶어 배포하려면 <b>플러그인</b>. 훅은 그중 <b>"반드시 실행되어야 하는 것"</b>을 담당한다.</div>
+  </div>
+  <div class="takeaway">막아야 하면 권한, 반응해야 하면 훅</div>
+</section>
+
+<!-- ═══════════ 05 · 라이프사이클 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">05</div>
+  <div class="body">
+    <div class="eyebrow">동작 원리 · LIFECYCLE</div>
+    <h1>훅은 <em>세 가지 주기</em>로 뛴다</h1>
+    <div class="flowwrap">
+      <svg viewBox="0 0 1152 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6E6E76"/></marker></defs>
+        <!-- SessionStart -->
+        <rect x="8" y="104" width="126" height="70" rx="13" fill="rgba(255,91,31,.10)" stroke="#FF5B1F" stroke-width="1.5"/>
+        <text x="71" y="136" text-anchor="middle" font-size="13" font-weight="700" fill="#FF8A57" font-family="ui-monospace,monospace">SessionStart</text>
+        <text x="71" y="156" text-anchor="middle" font-size="11" fill="#9A9AA3" font-family="inherit">세션 시작 · 재개</text>
+        <text x="71" y="196" text-anchor="middle" font-size="11" font-weight="700" fill="#77777F" font-family="inherit">세션당 1회</text>
+        <line x1="136" y1="139" x2="158" y2="139" stroke="#55555E" stroke-width="1.6" marker-end="url(#arr)"/>
+        <!-- 턴 박스 -->
+        <rect x="164" y="24" width="822" height="248" rx="16" fill="#141417" stroke="#2C2C32" stroke-width="1.4"/>
+        <text x="184" y="50" font-size="12.5" font-weight="800" fill="#8A8A93" font-family="inherit">턴마다 1회 · PER TURN</text>
+        <rect x="184" y="104" width="152" height="70" rx="12" fill="rgba(255,91,31,.10)" stroke="#FF5B1F" stroke-width="1.5"/>
+        <text x="260" y="136" text-anchor="middle" font-size="13" font-weight="700" fill="#FF8A57" font-family="ui-monospace,monospace">UserPromptSubmit</text>
+        <text x="260" y="156" text-anchor="middle" font-size="11" fill="#9A9AA3" font-family="inherit">프롬프트 제출 직후</text>
+        <line x1="338" y1="139" x2="360" y2="139" stroke="#55555E" stroke-width="1.6" marker-end="url(#arr)"/>
+        <!-- 에이전틱 루프 -->
+        <rect x="366" y="66" width="430" height="168" rx="14" fill="rgba(255,91,31,.045)" stroke="#FF5B1F" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="386" y="92" font-size="12.5" font-weight="800" fill="#FF8A57" font-family="inherit">에이전틱 루프 · 도구 호출마다</text>
+        <rect x="384" y="112" width="118" height="62" rx="11" fill="#1A1A1E" stroke="#3A3A42"/>
+        <text x="443" y="140" text-anchor="middle" font-size="12" font-weight="700" fill="#FF8A57" font-family="ui-monospace,monospace">PreToolUse</text>
+        <text x="443" y="159" text-anchor="middle" font-size="10.5" fill="#9A9AA3" font-family="inherit">차단 가능</text>
+        <line x1="504" y1="143" x2="520" y2="143" stroke="#55555E" stroke-width="1.6" marker-end="url(#arr)"/>
+        <rect x="524" y="112" width="112" height="62" rx="11" fill="#0F0F12" stroke="#2C2C32"/>
+        <text x="580" y="140" text-anchor="middle" font-size="12.5" font-weight="700" fill="#EDEDEF" font-family="inherit">도구 실행</text>
+        <text x="580" y="159" text-anchor="middle" font-size="10.5" fill="#77777F" font-family="inherit">Bash · Edit …</text>
+        <line x1="638" y1="143" x2="654" y2="143" stroke="#55555E" stroke-width="1.6" marker-end="url(#arr)"/>
+        <rect x="658" y="112" width="120" height="62" rx="11" fill="#1A1A1E" stroke="#3A3A42"/>
+        <text x="718" y="140" text-anchor="middle" font-size="12" font-weight="700" fill="#FF8A57" font-family="ui-monospace,monospace">PostToolUse</text>
+        <text x="718" y="159" text-anchor="middle" font-size="10.5" fill="#9A9AA3" font-family="inherit">되돌리기 불가</text>
+        <path d="M718 196 H443 V180" fill="none" stroke="#55555E" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+        <text x="580" y="214" text-anchor="middle" font-size="10.5" fill="#77777F" font-family="inherit">다음 도구 호출로 반복</text>
+        <line x1="798" y1="139" x2="820" y2="139" stroke="#55555E" stroke-width="1.6" marker-end="url(#arr)"/>
+        <!-- Stop -->
+        <rect x="826" y="104" width="140" height="70" rx="12" fill="rgba(255,91,31,.10)" stroke="#FF5B1F" stroke-width="1.5"/>
+        <text x="896" y="136" text-anchor="middle" font-size="13" font-weight="700" fill="#FF8A57" font-family="ui-monospace,monospace">Stop</text>
+        <text x="896" y="156" text-anchor="middle" font-size="11" fill="#9A9AA3" font-family="inherit">응답을 마쳤을 때</text>
+        <line x1="988" y1="139" x2="1010" y2="139" stroke="#55555E" stroke-width="1.6" marker-end="url(#arr)"/>
+        <!-- SessionEnd -->
+        <rect x="1016" y="104" width="128" height="70" rx="13" fill="rgba(255,91,31,.10)" stroke="#FF5B1F" stroke-width="1.5"/>
+        <text x="1080" y="136" text-anchor="middle" font-size="13" font-weight="700" fill="#FF8A57" font-family="ui-monospace,monospace">SessionEnd</text>
+        <text x="1080" y="156" text-anchor="middle" font-size="11" fill="#9A9AA3" font-family="inherit">세션 종료</text>
+        <text x="1080" y="196" text-anchor="middle" font-size="11" font-weight="700" fill="#77777F" font-family="inherit">세션당 1회</text>
+      </svg>
+    </div>
+    <div class="note">이 축 위에 다른 이벤트들이 얹힌다 — 권한 대화상자가 뜨면 <b>PermissionRequest</b>, 입력 대기 알림은 <b>Notification</b>, 컨텍스트 압축 전후엔 <b>PreCompact · PostCompact</b>, 서브에이전트가 뜨고 끝날 땐 <b>SubagentStart · SubagentStop</b>.</div>
+  </div>
+  <div class="takeaway">"언제 끼어들 것인가" — 이벤트 선택이 설계의 8할</div>
+</section>
+
+<!-- ═══════════ 06 · 이벤트 카탈로그 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">06</div>
+  <div class="body">
+    <div class="eyebrow">이벤트 카탈로그 · EVENTS</div>
+    <h1>실무에서 <em>90%는 이 8개</em>로 끝난다</h1>
+    <table class="tbl tight">
+      <tr><th style="width:210px">이벤트</th><th>언제 실행되나</th><th style="width:290px">막을 수 있나</th></tr>
+      <tr><td class="mono">SessionStart</td><td class="mut">세션이 시작되거나 재개될 때</td><td class="mut">✗ 차단 불가 · 컨텍스트 주입용</td></tr>
+      <tr><td class="mono">UserPromptSubmit</td><td class="mut">프롬프트 제출 직후, Claude가 읽기 전</td><td><b style="color:#3ACB82">✓</b> <span class="mut">프롬프트 자체를 차단</span></td></tr>
+      <tr><td class="mono">PreToolUse</td><td class="mut">도구가 실행되기 직전</td><td><b style="color:#3ACB82">✓</b> <span class="mut">도구 호출 차단 · 인자 교체</span></td></tr>
+      <tr><td class="mono">PermissionRequest</td><td class="mut">권한 대화상자가 뜨는 순간</td><td><b style="color:#3ACB82">✓</b> <span class="mut">사용자 대신 승인 · 거부</span></td></tr>
+      <tr><td class="mono">PostToolUse</td><td class="mut">도구가 성공적으로 끝난 뒤</td><td class="mut">✗ 되돌릴 수 없음 · 피드백만</td></tr>
+      <tr><td class="mono">Stop</td><td class="mut">Claude가 응답을 마쳤을 때</td><td><b style="color:#3ACB82">✓</b> <span class="mut">멈추지 못하게 하고 계속 시킴</span></td></tr>
+      <tr><td class="mono">Notification</td><td class="mut">입력·권한을 기다린다고 알릴 때</td><td class="mut">✗ 알림 커스터마이즈용</td></tr>
+      <tr><td class="mono">SessionEnd</td><td class="mut">세션이 종료될 때</td><td class="mut">✗ 정리 · 집계용</td></tr>
+    </table>
+    <div class="note">이 밖에도 <code>SubagentStart/Stop</code> <code>PreCompact</code> <code>ConfigChange</code> <code>FileChanged</code> 등 <b>30개가 넘는 이벤트</b>가 있다 — 필요할 때 공식 레퍼런스에서 찾아 쓰면 된다.</div>
+  </div>
+  <div class="takeaway">막으려면 <b>Pre</b>, 반응하려면 <b>Post</b></div>
+</section>
+
+<!-- ═══════════ 07 · 설정 해부 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">07</div>
+  <div class="body">
+    <div class="eyebrow">설정 구조 · ANATOMY</div>
+    <h1>훅 설정은 <em>딱 3층</em>이다</h1>
+    <div class="cols-64">
+      <div class="term">
+        <div class="tb"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tt">.claude/settings.json</span></div>
+        <pre style="font-size:12.5px;line-height:1.6">{
+  <span class="k">"hooks"</span>: {
+    <span class="k">"PreToolUse"</span>: [                <span class="c">← ① 이벤트</span>
+      {
+        <span class="k">"matcher"</span>: <span class="s">"Bash"</span>,          <span class="c">← ② 매처 그룹</span>
+        <span class="k">"hooks"</span>: [
+          {                          <span class="c">← ③ 핸들러</span>
+            <span class="k">"type"</span>: <span class="s">"command"</span>,
+            <span class="k">"if"</span>: <span class="s">"Bash(rm *)"</span>,
+            <span class="k">"command"</span>: <span class="s">"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-rm.sh"</span>,
+            <span class="k">"args"</span>: []
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+      <div>
+        <div class="cards" style="gap:11px">
+          <div class="card" style="padding:14px 18px"><div class="chip b">1</div><div>
+            <h3 style="font-size:16.5px">이벤트</h3>
+            <p style="font-size:13.2px">언제 끼어들지 고른다. 라이프사이클 이름이 그대로 키가 된다.</p>
+          </div></div>
+          <div class="card" style="padding:14px 18px"><div class="chip g">2</div><div>
+            <h3 style="font-size:16.5px">매처 그룹</h3>
+            <p style="font-size:13.2px">그 이벤트 중 <b style="color:#D9D9DE">어떤 경우</b>에만 뛸지 좁힌다. 생략하면 매번 실행.</p>
+          </div></div>
+          <div class="card" style="padding:14px 18px"><div class="chip o">3</div><div>
+            <h3 style="font-size:16.5px">핸들러</h3>
+            <p style="font-size:13.2px">실제로 실행되는 것. 여러 개를 나열하면 <b style="color:#D9D9DE">전부 병렬</b>로 돈다.</p>
+          </div></div>
+        </div>
+        <div class="note"><code>${CLAUDE_PROJECT_DIR}</code>는 프로젝트 루트. 스크립트 경로를 쓸 땐 <code>args</code>를 붙여 셸을 거치지 않는 게 안전하다(공백·따옴표 문제 없음).</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">이벤트 → 매처 → 핸들러, 이 3층이 전부다</div>
+</section>
+
+<!-- ═══════════ 08 · 어디에 저장하나 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">08</div>
+  <div class="body">
+    <div class="eyebrow">저장 위치 · SCOPE</div>
+    <h1>어디에 쓰느냐가 <em>적용 범위</em>를 정한다</h1>
+    <div class="cols-64">
+      <table class="tbl">
+        <tr><th style="width:250px">위치</th><th>적용 범위</th><th style="width:150px">공유</th></tr>
+        <tr><td class="mono">~/.claude/settings.json</td><td class="mut">내 모든 프로젝트</td><td class="mut">✗ 내 PC에만</td></tr>
+        <tr><td class="mono">.claude/settings.json</td><td class="mut">이 프로젝트</td><td><b style="color:#3ACB82">✓</b> <span class="mut">커밋 → 팀 전체</span></td></tr>
+        <tr><td class="mono">.claude/settings.local.json</td><td class="mut">이 프로젝트 (나만)</td><td class="mut">✗ 자동 gitignore</td></tr>
+        <tr><td class="mut">관리 정책 설정</td><td class="mut">조직 전체</td><td><b style="color:#3ACB82">✓</b> <span class="mut">관리자 전용</span></td></tr>
+        <tr><td class="mono">플러그인 hooks/hooks.json</td><td class="mut">플러그인이 켜져 있을 때</td><td><b style="color:#3ACB82">✓</b> <span class="mut">플러그인에 동봉</span></td></tr>
+        <tr><td class="mut">Skill · Agent frontmatter</td><td class="mut">그 컴포넌트가 도는 동안</td><td><b style="color:#3ACB82">✓</b> <span class="mut">파일에 내장</span></td></tr>
+      </table>
+      <div>
+        <div class="term">
+          <div class="tb"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tt">Claude Code</span></div>
+          <pre style="font-size:12.5px;line-height:1.8"><span class="p">❯</span> <span class="hl">/hooks</span>
+
+<span class="dm">  PreToolUse</span> <span class="c">·······</span> <span class="ok">2</span>
+<span class="dm">  PostToolUse</span> <span class="c">······</span> <span class="ok">1</span>
+<span class="dm">  Notification</span> <span class="c">·····</span> <span class="ok">1</span>
+
+<span class="c">  [command]</span> <span class="hl">block-rm.sh</span> <span class="c">— Project</span>
+<span class="c">  [command]</span> <span class="hl">prettier --write</span> <span class="c">— User</span></pre>
+        </div>
+        <div class="note"><code>/hooks</code>는 <b>읽기 전용</b> 브라우저다. 어떤 훅이 어느 파일에서 왔는지 확인만 한다. 추가·수정은 JSON을 직접 고치거나 <b>Claude에게 시키면</b> 된다.</div>
+        <div class="note">파일을 저장하면 감시자가 <b>자동으로 반영</b>한다. 안 붙으면 세션을 재시작하고 JSON 문법(후행 쉼표·주석)을 의심하자.</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">팀에 강제할 규칙이면 <b>프로젝트에 커밋</b>하라</div>
+</section>
+
+<!-- ═══════════ 09 · 매처와 if ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">09</div>
+  <div class="body">
+    <div class="eyebrow">범위 좁히기 · MATCHER</div>
+    <h1>매처는 <em>쓴 대로 해석</em>된다</h1>
+    <div class="lead">매처에 들어간 <b>문자의 종류</b>에 따라 정확 일치인지 정규식인지가 갈린다.</div>
+    <table class="tbl tight" style="margin-bottom:14px">
+      <tr><th style="width:330px">매처 값</th><th style="width:250px">해석</th><th>예시</th></tr>
+      <tr><td class="mono">"*" · "" · 생략</td><td class="mut">전부 일치</td><td class="mut">이벤트가 뜰 때마다 항상</td></tr>
+      <tr><td class="mut">문자·숫자·<span class="mono">_ - , |</span>·공백만</td><td class="mut">정확 일치 (목록 가능)</td><td class="mono">Bash / Edit|Write / Edit, Write</td></tr>
+      <tr><td class="mut">그 외 문자가 하나라도 포함</td><td class="mut">정규식 (앵커 없음)</td><td class="mono">mcp__memory__.* / ^Notebook</td></tr>
+    </table>
+    <div class="cols">
+      <div class="gcard warn" style="padding:16px 20px">
+        <div class="gh" style="margin-bottom:8px"><span class="em">⚠️</span><h3>자주 틀리는 지점</h3></div>
+        <ul>
+          <li><code>Edit.*</code>는 <b>NotebookEdit까지</b> 잡는다 → <code>^Edit$</code>로 앵커를 걸어라</li>
+          <li>매처는 <b>대소문자를 구분</b>한다</li>
+          <li>이벤트마다 보는 값이 다르다 — 도구 이름 · <span class="mono">startup·resume·clear</span> · 알림 종류 · 에이전트 이름</li>
+        </ul>
+      </div>
+      <div class="gcard" style="padding:16px 20px">
+        <div class="gh" style="margin-bottom:8px"><span class="em">🎯</span><h3><code>if</code> — 인자까지 좁히기</h3></div>
+        <p style="font-size:13.4px">매처가 <b>도구 이름</b>까지라면, <code style="font-family:var(--mono);color:#FFC29E">if</code>는 <b>인자</b>까지 본다. 조건이 맞을 때만 프로세스가 뜬다.</p>
+        <ul>
+          <li><span class="mono" style="color:#FFC29E">"Bash(git *)"</span> — git 명령일 때만</li>
+          <li><span class="mono" style="color:#FFC29E">"Edit(*.ts)"</span> — 타입스크립트 편집에만</li>
+          <li>규칙은 하나만 (<span class="mono">&amp;&amp;</span> · <span class="mono">||</span> 없음) → 조건마다 핸들러를 따로</li>
+          <li>도구 이벤트에서만 동작 · 파싱 실패 시 <b>그냥 실행</b>(fail open)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">그룹은 <b>matcher</b>로, 인자는 <b>if</b>로 — 하드 차단은 권한 규칙으로</div>
+</section>
+
+<!-- ═══════════ 10 · 입력과 출력 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">10</div>
+  <div class="body">
+    <div class="eyebrow">입력과 출력 · I/O</div>
+    <h1>JSON으로 듣고, <em>종료 코드로 답한다</em></h1>
+    <div class="cols">
+      <div>
+        <div class="term">
+          <div class="tb"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tt">stdin — 훅이 받는 JSON</span></div>
+          <pre style="font-size:12.5px;line-height:1.72">{
+  <span class="k">"session_id"</span>: <span class="s">"abc123"</span>,
+  <span class="k">"cwd"</span>: <span class="s">"/Users/gym/my-project"</span>,
+  <span class="k">"permission_mode"</span>: <span class="s">"default"</span>,
+  <span class="k">"hook_event_name"</span>: <span class="s">"PreToolUse"</span>,
+  <span class="k">"tool_name"</span>: <span class="s">"Bash"</span>,
+  <span class="k">"tool_input"</span>: {
+    <span class="k">"command"</span>: <span class="s">"rm -rf /tmp/build"</span>
+  }
+}</pre>
+        </div>
+        <div class="note">공통 필드(<code>session_id</code> <code>cwd</code> <code>hook_event_name</code>)에 이벤트별 필드가 얹힌다. UserPromptSubmit은 <code>prompt</code>, SessionStart는 <code>source</code>를 받는다.</div>
+      </div>
+      <div>
+        <div class="exit"><div class="code ok">exit 0</div><div>
+          <h3>이의 없음 · 그대로 진행</h3>
+          <p>PreToolUse에서 0은 <b style="color:#D9D9DE">승인이 아니다</b> — 평소 권한 흐름이 그대로 이어진다. 단 UserPromptSubmit · SessionStart는 stdout이 <b style="color:#D9D9DE">컨텍스트로 주입</b>된다.</p>
+        </div></div>
+        <div class="exit"><div class="code no">exit 2</div><div>
+          <h3>차단 · stderr가 Claude에게 간다</h3>
+          <p>도구 호출이 취소되고, stderr에 쓴 이유가 <b style="color:#D9D9DE">피드백</b>으로 전달돼 Claude가 방법을 바꾼다. 이벤트마다 효과는 다르다(프롬프트 취소, 못 멈추게 하기 등).</p>
+        </div></div>
+        <div class="exit"><div class="code warn">그 외</div><div>
+          <h3>비차단 에러 · 작업은 진행된다</h3>
+          <p>트랜스크립트에 <code>hook error</code>와 stderr 첫 줄만 뜨고 <b style="color:#D9D9DE">아무것도 막지 못한다</b>.</p>
+        </div></div>
+        <div class="note"><b style="color:#FF8A57">⚠️ exit 1은 차단이 아니다.</b> 유닉스 관례와 달리 1은 "에러지만 계속"이다. 정책을 강제할 생각이면 반드시 <code>exit 2</code>.</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">막고 싶으면 <b>2로</b> 나가라</div>
+</section>
+
+<!-- ═══════════ 11 · JSON 출력 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">11</div>
+  <div class="body">
+    <div class="eyebrow">정밀 제어 · JSON OUTPUT</div>
+    <h1>종료 코드로 부족하면 <em>JSON으로</em></h1>
+    <div class="lead">종료 코드는 막거나 가만히 있거나 둘뿐 — <b>exit 0 + stdout JSON</b>이면 훨씬 정밀해진다.</div>
+    <div class="grid2">
+      <div class="gcard">
+        <div class="gh"><span class="em">🚦</span><h3>PreToolUse · 허가 결정</h3></div>
+        <div class="meta">permissionDecision = allow | deny | ask</div>
+        <p><b>deny</b>면 호출이 취소되고 이유가 Claude에게 간다. <b>ask</b>는 사용자에게 묻는다. <code>updatedInput</code>으로 인자를 바꿔치기할 수도 있다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🛑</span><h3>상위 <code>decision</code> · 차단</h3></div>
+        <div class="meta">{ "decision": "block", "reason": "…" }</div>
+        <p>UserPromptSubmit · PostToolUse · Stop 등이 쓰는 방식. Stop에서 쓰면 <b>대화가 계속되며</b> reason이 다음 지시가 된다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🧠</span><h3>컨텍스트 주입</h3></div>
+        <div class="meta">hookSpecificOutput.additionalContext</div>
+        <p>현재 브랜치, 배포 대상 같은 <b>상태 정보</b>를 밀어 넣는다. <b style="color:#D9D9DE">명령문이 아니라 사실 문장</b>으로 — 지시문처럼 쓰면 프롬프트 인젝션 방어에 걸린다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">⏹️</span><h3>전체 중단 · 사용자 알림</h3></div>
+        <div class="meta">{ "continue": false, "stopReason": "…" }</div>
+        <p><code>continue:false</code>는 이벤트와 무관하게 Claude를 <b>완전히 멈춘다</b>. <code>systemMessage</code>는 사용자에게 보이는 경고.</p>
+      </div>
+    </div>
+    <div class="note"><b>exit 2와 JSON을 섞지 마라</b> — JSON은 exit 0일 때만 처리된다. 그리고 allow는 deny 규칙을 뚫지 못한다.</div>
+  </div>
+  <div class="takeaway">훅은 <b>조일 수는 있어도 풀 수는 없다</b></div>
+</section>
+
+<!-- ═══════════ 12 · 훅 5종 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">12</div>
+  <div class="body">
+    <div class="eyebrow">핸들러 종류 · 5 TYPES</div>
+    <h1>훅이 <em>셸 명령</em>만 있는 건 아니다</h1>
+    <div class="grid3">
+      <div class="gcard">
+        <div class="gh"><span class="em">⌨️</span><h3><code>command</code></h3></div>
+        <div class="meta">기본값 · 타임아웃 600초</div>
+        <p><b>셸 명령이나 스크립트.</b> stdin으로 JSON을 받고 종료 코드·stdout으로 답한다.</p>
+        <ul><li><code>args</code>를 주면 셸 없이 바로 실행 — 경로에 공백이 있어도 안전</li></ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🌐</span><h3><code>http</code></h3></div>
+        <div class="meta">url · headers · allowedEnvVars</div>
+        <p><b>이벤트 JSON을 그대로 POST.</b> 응답 바디가 stdout 역할을 한다. 팀 공용 감사·검증 서버에 어울린다.</p>
+        <ul><li>상태 코드만으론 차단 불가 — 막으려면 2xx + 결정 JSON</li></ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🔌</span><h3><code>mcp_tool</code></h3></div>
+        <div class="meta">server · tool · input</div>
+        <p><b>이미 연결된 MCP 서버의 툴을 호출한다.</b> 툴의 텍스트 출력이 stdout처럼 처리된다.</p>
+        <ul><li>입력값 꽂기 <code>${tool_input.file_path}</code> · 연결 전이면 비차단 에러</li></ul>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <div class="gcard">
+        <div class="gh"><span class="em">💭</span><h3><code>prompt</code> — 판단이 필요할 때</h3></div>
+        <div class="meta">기본 Haiku · 30초 · { "ok": false, "reason": "…" }</div>
+        <p>규칙으로 표현할 수 없는 <b>판단</b>을 모델에게 맡긴다. 예: Stop 훅에서 "작업이 다 끝났나?"를 묻는다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🕵️</span><h3><code>agent</code> — 실제로 확인할 때</h3></div>
+        <div class="meta">실험적 · 60초 · 최대 50턴 · 도구 사용 가능</div>
+        <p>서브에이전트가 파일을 읽고 명령을 돌려 <b>실제 상태</b>를 확인한 뒤 판단한다.</p>
+      </div>
+    </div>
+    <div class="note">타임아웃 기본값 — <code>command</code> 600초, <code>prompt</code> 30초, <code>agent</code> 60초.</div>
+  </div>
+  <div class="takeaway">결정론이면 <b>command</b>, 판단이면 <b>prompt</b>, 검증이면 <b>agent</b></div>
+</section>
+
+<!-- ═══════════ 13 · 레시피 3종 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">13</div>
+  <div class="body">
+    <div class="eyebrow">실전 레시피 · RECIPES</div>
+    <h1>오늘 바로 거는 <em>훅 3종</em></h1>
+    <div class="grid3">
+      <div class="gcard">
+        <div class="gh"><span class="em">🎨</span><h3>편집하면 자동 포맷</h3></div>
+        <div class="meta">"PostToolUse"<br>matcher: "Edit|Write"<br>jq -r '.tool_input.file_path'<br>&nbsp;&nbsp;| xargs npx prettier --write</div>
+        <p><b>포맷 얘기를 다시 안 해도 된다.</b> 파일을 고칠 때마다 Prettier가 뒤따라 돈다.</p>
+        <ul>
+          <li>편집 도구에만 걸리게 매처로 좁힘</li>
+          <li>jq로 파일 경로만 뽑아 전달</li>
+          <li>eslint --fix를 나란히 하나 더</li>
+        </ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🛡️</span><h3>보호 파일 차단</h3></div>
+        <div class="meta">"PreToolUse"<br>matcher: "Edit|Write"<br>.claude/hooks/protect-files.sh</div>
+        <p><b>.env · package-lock.json · .git/</b> 를 건드리면 exit 2로 막고 이유를 돌려준다.</p>
+        <ul>
+          <li>차단 이유를 읽고 Claude가 방향을 바꾼다</li>
+          <li>스크립트는 <code>chmod +x</code> 필수</li>
+          <li>경로는 <code>${CLAUDE_PROJECT_DIR}</code> 기준으로</li>
+        </ul>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🧠</span><h3>압축 후 컨텍스트 재주입</h3></div>
+        <div class="meta">"SessionStart"<br>matcher: "compact"<br>echo '이 저장소는 bun을 쓴다…'</div>
+        <p><b>컴팩션에 날아간 규칙을 되살린다.</b> 이 이벤트에선 stdout이 그대로 컨텍스트가 된다.</p>
+        <ul>
+          <li><code>git log --oneline -5</code>처럼 동적 출력도 가능</li>
+          <li>매 세션 고정 규칙이면 CLAUDE.md가 낫다</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">알림도 한 줄이다 — <code>Notification</code> 이벤트에 macOS는 <code>osascript</code>, 리눅스는 <code>notify-send</code>. 자리를 비워도 Claude가 나를 기다리는 순간을 놓치지 않는다.</div>
+  </div>
+  <div class="takeaway">포맷 · 차단 · 주입 — 이 셋만 걸어도 체감이 다르다</div>
+</section>
+
+<!-- ═══════════ 14 · 차단 훅 해부 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">14</div>
+  <div class="body">
+    <div class="eyebrow">심화 · WALKTHROUGH</div>
+    <h1><em>rm -rf</em>를 막는 훅, 한 줄씩</h1>
+    <div class="cols-64">
+      <div class="term">
+        <div class="tb"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="tt">.claude/hooks/block-rm.sh</span></div>
+        <pre style="font-size:12.5px;line-height:1.72"><span class="c">#!/bin/bash</span>
+COMMAND=$(jq -r <span class="s">'.tool_input.command'</span>)
+
+<span class="k">if</span> echo <span class="s">"$COMMAND"</span> | grep -q <span class="s">'rm -rf'</span>; <span class="k">then</span>
+  jq -n <span class="s">'{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: "위험한 명령이라 훅이 막았습니다"
+    }
+  }'</span>
+<span class="k">else</span>
+  <span class="k">exit</span> 0   <span class="c"># 결정 없음 → 평소 권한 흐름</span>
+<span class="k">fi</span></pre>
+      </div>
+      <div>
+        <div class="cards" style="gap:11px">
+          <div class="card" style="padding:14px 18px"><div class="chip b">1</div><div>
+            <h3 style="font-size:16.5px">이벤트가 뜬다</h3>
+            <p style="font-size:13.2px">Claude가 <code>rm -rf /tmp/build</code>를 실행하려 한다. <code>tool_input</code>이 JSON으로 stdin에 꽂힌다.</p>
+          </div></div>
+          <div class="card" style="padding:14px 18px"><div class="chip g">2</div><div>
+            <h3 style="font-size:16.5px">두 겹으로 걸러진다</h3>
+            <p style="font-size:13.2px">matcher가 <code>Bash</code>를, if가 <code>rm *</code>를 맞춰야 스크립트가 뜬다. <code>npm test</code>면 프로세스조차 안 뜬다.</p>
+          </div></div>
+          <div class="card" style="padding:14px 18px"><div class="chip o">3</div><div>
+            <h3 style="font-size:16.5px">결정이 돌아간다</h3>
+            <p style="font-size:13.2px">deny + 이유. 호출은 취소되고, Claude는 이유를 읽고 <b style="color:#D9D9DE">다른 방법</b>을 찾는다.</p>
+          </div></div>
+        </div>
+        <div class="note">같은 이벤트에 훅이 여러 개면 <b>전부 병렬</b>로 돌고, 결과는 가장 제한적인 것이 이긴다(deny → defer → ask → allow). 한 훅이 deny해도 <b>다른 훅의 부수효과는 취소되지 않는다</b>.</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">차단의 정석 — <b>PreToolUse + deny + 이유</b></div>
+</section>
+
+<!-- ═══════════ 15 · 함정과 보안 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">15</div>
+  <div class="body">
+    <div class="eyebrow">함정과 보안 · PITFALLS</div>
+    <h1>여기서 <em>다들 한 번씩</em> 넘어진다</h1>
+    <div class="grid3">
+      <div class="gcard warn">
+        <div class="gh"><span class="em">🔐</span><h3>훅에는 샌드박스가 없다</h3></div>
+        <p>내 자격증명과 권한 그대로, 에이전트 루프 도중 <b style="color:#D9D9DE">자동으로</b> 실행된다. 남의 설정을 그대로 붙여넣지 말고, 등록 전에 반드시 코드를 읽어라. 조직이라면 관리 설정으로 승인된 훅만 허용할 수 있다.</p>
+      </div>
+      <div class="gcard warn">
+        <div class="gh"><span class="em">⚠️</span><h3>exit 1은 막지 못한다</h3></div>
+        <p>유닉스 관례와 달리 1은 "에러지만 계속 진행"이다. 정책 강제는 반드시 <code>exit 2</code>. 스크립트가 실패했을 때 조용히 통과하고 있진 않은지 확인하자.</p>
+      </div>
+      <div class="gcard warn">
+        <div class="gh"><span class="em">⏪</span><h3>PostToolUse는 되돌릴 수 없다</h3></div>
+        <p>이미 실행된 뒤에 뛴다. 진짜로 막아야 하는 건 <b style="color:#D9D9DE">PreToolUse</b>. Post는 검사·포맷·피드백 용도로만 생각하는 게 맞다.</p>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:13px">
+      <div class="gcard">
+        <div class="gh"><span class="em">🔁</span><h3>Stop 훅 무한 루프</h3></div>
+        <p>연속 8회 차단하면 강제로 풀린다. 입력의 <code>stop_hook_active</code>가 true면 조기 종료하도록 짜야 한다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🕳️</span><h3>Bash로도 파일은 바뀐다</h3></div>
+        <p><code>Edit|Write</code>만 걸면 <code>sed -i</code>나 리다이렉션은 못 잡는다. 감사·컴플라이언스 목적이면 Stop 훅에서 워킹트리를 한 번 훑어라.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🔧</span><h3>안 될 때 · 끄고 싶을 때</h3></div>
+        <p><code>claude --debug-file /tmp/claude.log</code>로 전 과정을 남기고, <span class="kbd">Ctrl+O</span>로 트랜스크립트를 본다. 전부 끄려면 <code>"disableAllHooks": true</code>(개별 비활성화는 없다).</p>
+      </div>
+    </div>
+    <div class="note">JSON 파싱 에러가 뜬다면 셸 프로필의 <code>echo</code>가 stdout을 오염시킨 경우가 많다 — 인터랙티브일 때만 출력하도록 감싸자. <code>-p</code> 모드에선 PermissionRequest가 뜨지 않으니 PreToolUse를 쓴다.</div>
+  </div>
+  <div class="takeaway">훅은 <b>내 권한으로</b> 실행된다 — 붙이기 전에 읽어라</div>
+</section>
+
+<!-- ═══════════ 16 · 핵심 정리 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">16</div>
+  <div class="body">
+    <div class="eyebrow">핵심 정리 · RECAP</div>
+    <h1>오늘 <em>네 가지</em>만 가져가자</h1>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="sum"><div class="n">01</div><div class="k"><em>시점</em></div><div class="d">세션당 1회 · 턴당 1회 · 도구 호출마다. <b style="color:#D9D9DE">어느 이벤트에 걸 것인가</b>가 설계의 시작이다.</div></div>
+      <div class="sum"><div class="n">02</div><div class="k"><em>범위</em></div><div class="d"><code>matcher</code>로 그룹을, <code>if</code>로 인자를 좁힌다. 안 좁히면 매 호출마다 프로세스가 뜬다.</div></div>
+      <div class="sum"><div class="n">03</div><div class="k"><em>대답</em></div><div class="d"><code>exit 2</code>로 막고, <code>exit 0 + JSON</code>으로 정밀하게. 둘을 <b style="color:#D9D9DE">섞지 않는다</b>.</div></div>
+      <div class="sum"><div class="n">04</div><div class="k"><em>한계</em></div><div class="d">훅은 조일 수는 있어도 풀 수는 없다. 그리고 <b style="color:#D9D9DE">내 권한으로</b> 실행된다 — 검토는 선택이 아니다.</div></div>
+    </div>
+  </div>
+  <div class="takeaway">규칙을 <b>말로 적지 말고 코드로 내려라</b></div>
+</section>
+
+<!-- ═══════════ 17 · 실습 미션 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="pagenum">17</div>
+  <div class="body">
+    <div class="eyebrow">실습 · MISSION</div>
+    <h1>지금 <em>내 프로젝트</em>에 걸어보자</h1>
+    <div class="cards">
+      <div class="card"><div class="chip b">1</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>편집하면 자동 포맷되게 만들기</h3><span class="time">10분</span></div>
+        <p><code>.claude/settings.json</code>에 PostToolUse + <code>Edit|Write</code> 훅을 걸고, Claude에게 파일 하나를 고치게 시킨다. 저장된 결과가 포맷돼 있는지, <code>/hooks</code>에 잘 등록됐는지 확인.</p>
+      </div></div>
+      <div class="card"><div class="chip g">2</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>.env 보호 훅 만들기</h3><span class="time">15분</span></div>
+        <p><code>protect-files.sh</code>를 짜고 <code>chmod +x</code> 후 PreToolUse에 등록한다. "<b style="color:#D9D9DE">.env에 키 하나 추가해줘</b>"라고 시켜서 <b style="color:#D9D9DE">차단되는지</b>, 차단 이유를 읽고 Claude가 방향을 바꾸는지 관찰.</p>
+      </div></div>
+      <div class="card"><div class="chip o">3</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>세션 시작 컨텍스트 주입하기</h3><span class="time">10분</span></div>
+        <p>SessionStart 훅에 <code>git log --oneline -5</code>를 건다. 새 세션에서 "최근 커밋 5개 뭐야?"라고 물었을 때 <b style="color:#D9D9DE">도구를 쓰지 않고</b> 바로 답하면 성공.</p>
+      </div></div>
+    </div>
+    <div class="note">막히면 Claude에게 시켜도 된다 — "PostToolUse에 prettier 거는 훅을 settings.json에 추가해줘". 다만 <code>/hooks</code>는 읽기 전용이라 실제 편집은 <b>파일</b>에서 일어난다.</div>
+  </div>
+  <div class="takeaway">한 번 걸어두면 <b>내일의 나</b>가 편해진다</div>
+</section>
+
+<!-- ═══════════ 18 · OUTRO ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#Hooks</div>
+  </header>
+  <div class="outro">
+    <div class="eb">WRAP-UP</div>
+    <h1>이제 Claude는<br><em>규칙을 지킬 수밖에</em> 없다</h1>
+    <div class="d">부탁하던 것을 코드로 확정하는 순간,<br>에이전트는 '똑똑한 동료'에서 <b style="color:#D8D8DC">'믿을 수 있는 동료'</b>가 된다</div>
+    <div class="avatar"><svg style="width:52px;height:52px;color:var(--orange)"><use href="#spark"/></svg></div>
+    <div class="cta">Q&amp;A · 질문 환영</div>
+    <div class="promo">
+      <div class="th">NEXT<br>PLUGIN</div>
+      <div>
+        <div class="pt">다음 시간 · 하나로 묶어서 팀에 배포하기</div>
+        <div class="pd">훅 · 스킬 · 서브에이전트를 플러그인으로 패키징하는 법 <span class="hot">계속</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /stage -->
+
+<div class="hud">
+  <span class="cnt" id="cnt">01 / 18</span>
+  <button id="prev" aria-label="이전 슬라이드">‹</button>
+  <button id="next" aria-label="다음 슬라이드">›</button>
+  <button id="fs" aria-label="전체화면 (F)" style="display:grid;place-items:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="display:block"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+<div class="hint"><b>← →</b> 슬라이드 이동 &nbsp;·&nbsp; <b>F</b> 전체화면 &nbsp;·&nbsp; <b>Ctrl+P</b> PDF 저장</div>
+<div class="progress" id="prog"></div>
+</div><!-- /deck -->
+
+<script>
+(function(){
+  var stage=document.getElementById('stage');
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var cnt=document.getElementById('cnt');
+  var prog=document.getElementById('prog');
+  var cur=0, N=slides.length;
+
+  function pad(n){return String(n).padStart(2,'0');}
+  function go(n){
+    n=Math.max(0,Math.min(N-1,n));
+    if(n===cur && slides[n].classList.contains('active')){update();return;}
+    slides[cur].classList.remove('active');
+    cur=n;
+    slides[cur].classList.add('active');
+    update();
+  }
+  function update(){
+    cnt.textContent=pad(cur+1)+' / '+pad(N);
+    prog.style.width=(N>1?(cur/(N-1))*100:100)+'%';
+    try{if(history.replaceState){history.replaceState(null,'','#'+(cur+1));}}catch(e){/* 샌드박스(미리보기)에서는 URL 갱신 불가 — 무시 */}
+  }
+  function next(){go(cur+1);}
+  function prev(){go(cur-1);}
+
+  function fit(){
+    var s=Math.min(window.innerWidth/1280, window.innerHeight/720);
+    stage.style.transform='translate(-50%,-50%) scale('+s+')';
+  }
+  window.addEventListener('resize',fit);
+  fit();
+
+  // ── 안전장치: 폰트 대체·번역 등으로 내용이 넘치면 본문만 살짝 축소 ──
+  function fitBodies(){
+    for(var i=0;i<N;i++){
+      var b=slides[i].querySelector('.body');
+      if(!b) continue;
+      b.style.transform='none';
+      var kids=b.children;
+      if(!kids.length) continue;
+      var last=kids[kids.length-1];
+      var need=last.offsetTop+last.offsetHeight-b.offsetTop;
+      var avail=b.clientHeight;
+      if(need>avail+1){
+        var k=Math.max(.72, avail/need);
+        b.style.transformOrigin='top center';
+        b.style.transform='scale('+k+')';
+      }
+    }
+  }
+  window.addEventListener('resize',fitBodies);
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fitBodies);}
+  setTimeout(fitBodies,60);
+  fitBodies();
+
+  document.getElementById('next').addEventListener('click',next);
+  document.getElementById('prev').addEventListener('click',prev);
+
+  var toastEl=null,toastT=null;
+  function toast(msg){
+    if(!toastEl){toastEl=document.createElement('div');toastEl.className='toast';document.body.appendChild(toastEl);}
+    toastEl.textContent=msg;
+    toastEl.classList.add('on');
+    clearTimeout(toastT);
+    toastT=setTimeout(function(){toastEl.classList.remove('on');},3000);
+  }
+  function fsBlocked(){toast('이 미리보기 창에서는 전체화면이 차단돼 있어요 — 파일을 다운로드해 브라우저에서 열면 사용할 수 있습니다');}
+  function toggleFs(){
+    var d=document,el=d.documentElement;
+    var inFs=d.fullscreenElement||d.webkitFullscreenElement;
+    try{
+      if(inFs){(d.exitFullscreen||d.webkitExitFullscreen).call(d);return;}
+      var req=el.requestFullscreen||el.webkitRequestFullscreen;
+      if(!req){fsBlocked();return;}
+      var p=req.call(el);
+      if(p&&p.catch){p.catch(fsBlocked);}
+    }catch(err){fsBlocked();}
+  }
+  document.getElementById('fs').addEventListener('click',toggleFs);
+
+  window.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'||e.key===' '){e.preventDefault();next();}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();prev();}
+    else if(e.key==='Home'){e.preventDefault();go(0);}
+    else if(e.key==='End'){e.preventDefault();go(N-1);}
+    else if(e.key==='f'||e.key==='F'){toggleFs();}
+  });
+
+  var tx=null;
+  window.addEventListener('touchstart',function(e){tx=e.changedTouches[0].clientX;},{passive:true});
+  window.addEventListener('touchend',function(e){
+    if(tx===null)return;
+    var dx=e.changedTouches[0].clientX-tx;
+    if(dx<-50)next(); else if(dx>50)prev();
+    tx=null;
+  },{passive:true});
+
+  var h=parseInt((location.hash||'').replace('#',''),10);
+  if(!isNaN(h)&&h>=1&&h<=N){slides[0].classList.remove('active');cur=h-1;slides[cur].classList.add('active');}
+  update();
+})();
+</script>
+</body>
+</html>

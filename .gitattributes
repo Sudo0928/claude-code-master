@@ -1,0 +1,6 @@
+# 저장소에는 줄바꿈을 LF로 통일해 둔다 (배포 러너가 리눅스이기 때문)
+* text=auto
+*.html text eol=lf
+*.mjs  text eol=lf
+*.yml  text eol=lf
+*.json text eol=lf
