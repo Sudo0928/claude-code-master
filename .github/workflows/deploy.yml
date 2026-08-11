@@ -22,13 +22,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 저장소 내려받기
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # 파일별 마지막 수정 날짜를 git 기록에서 읽기 때문에 전체 이력이 필요하다.
           fetch-depth: 0
 
       - name: Node 준비
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
 
@@ -50,10 +50,10 @@ jobs:
           touch _site/.nojekyll
 
       - name: Pages 설정
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: 결과물 업로드
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
@@ -67,4 +67,4 @@ jobs:
     steps:
       - name: GitHub Pages로 배포
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
