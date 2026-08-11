@@ -1,0 +1,8 @@
+# 빌드 결과물
+_site/
+node_modules/
+
+# 운영체제가 만드는 파일
+.DS_Store
+Thumbs.db
+desktop.ini

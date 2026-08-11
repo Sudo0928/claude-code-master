@@ -1,0 +1,129 @@
+{
+  "generatedAt": "2026-08-11T07:09:35.365Z",
+  "series": "클로드 코드 완벽 마스터",
+  "count": 8,
+  "totalSlides": 171,
+  "lectures": [
+    {
+      "file": "claude-code-getting-started-lecture.html",
+      "title": "Claude Code 설치와 첫 사용법",
+      "tags": [
+        "시작하기"
+      ],
+      "description": "터미널이 처음이어도 괜찮습니다",
+      "source": "공식 문서 기반",
+      "date": "2026.07",
+      "series": "클로드 코드 완벽 마스터",
+      "slides": 19,
+      "bytes": 64801,
+      "updated": "2026-07-26T18:54:55+09:00",
+      "order": 1
+    },
+    {
+      "file": "claude-code-context-window-lecture.html",
+      "title": "Claude Code 컨텍스트 윈도우 완벽 가이드",
+      "tags": [
+        "컨텍스트"
+      ],
+      "description": "Claude Code 성능을 좌우하는 단 하나의 자원",
+      "source": "공식 문서 기반",
+      "date": "2026.07",
+      "series": "클로드 코드 완벽 마스터",
+      "slides": 19,
+      "bytes": 69554,
+      "updated": "2026-07-26T18:54:55+09:00",
+      "order": 2
+    },
+    {
+      "file": "claude-code-meta-prompting-lecture.html",
+      "title": "Claude Code 메타 프롬프트 — 학습을 위한 사용법",
+      "tags": [
+        "메타프롬프트"
+      ],
+      "description": "학습을 위한 Claude Code 메타 프롬프트",
+      "source": "공식 문서 기반",
+      "date": "2026.07",
+      "series": "클로드 코드 완벽 마스터",
+      "slides": 19,
+      "bytes": 67662,
+      "updated": "2026-07-26T18:54:55+09:00",
+      "order": 3
+    },
+    {
+      "file": "claude-code-subagents-lecture.html",
+      "title": "Claude Code 서브에이전트 완벽 가이드",
+      "tags": [
+        "서브에이전트"
+      ],
+      "description": "이제 Claude는 혼자 일하지 않는다",
+      "source": "공식 문서 기반",
+      "date": "2026.07",
+      "series": "클로드 코드 완벽 마스터",
+      "slides": 17,
+      "bytes": 58785,
+      "updated": "2026-07-26T18:54:55+09:00",
+      "order": 4
+    },
+    {
+      "file": "claude-code-agent-teams-lecture.html",
+      "title": "Claude Code Agent Teams 완벽 가이드",
+      "tags": [
+        "AgentTeams"
+      ],
+      "description": "Claude Code Agent Teams 완벽 가이드",
+      "source": "공식 문서 기반",
+      "date": "2026.07",
+      "series": "클로드 코드 완벽 마스터",
+      "slides": 28,
+      "bytes": 100978,
+      "updated": "2026-08-06T11:03:00+09:00",
+      "order": 5
+    },
+    {
+      "file": "claude-code-hooks-lecture.html",
+      "title": "Claude Code Hooks 완벽 가이드",
+      "tags": [
+        "Hooks"
+      ],
+      "description": "Claude Code의 행동을 내 코드로 강제하는 법",
+      "source": "공식 문서 기반",
+      "date": "2026.07",
+      "series": "클로드 코드 완벽 마스터",
+      "slides": 18,
+      "bytes": 71185,
+      "updated": "2026-07-26T18:54:55+09:00",
+      "order": 6
+    },
+    {
+      "file": "claude-code-skills-plugins-lecture.html",
+      "title": "Claude Code 스킬과 플러그인 완벽 가이드",
+      "tags": [
+        "스킬",
+        "플러그인"
+      ],
+      "description": "Claude Code 스킬과 플러그인 완벽 가이드",
+      "source": "공식 문서 기반",
+      "date": "2026.07",
+      "series": "클로드 코드 완벽 마스터",
+      "slides": 22,
+      "bytes": 81892,
+      "updated": "2026-07-26T18:54:55+09:00",
+      "order": 7
+    },
+    {
+      "file": "claude-code-dynamic-workflows-lecture.html",
+      "title": "Claude Code Dynamic Workflows 완벽 가이드",
+      "tags": [
+        "DynamicWorkflows"
+      ],
+      "description": "Claude Code Dynamic Workflows 완벽 가이드",
+      "source": "Workflow 도구 명세 기반",
+      "date": "2026.08",
+      "series": "클로드 코드 완벽 마스터",
+      "slides": 29,
+      "bytes": 117863,
+      "updated": "2026-08-11T10:55:00+09:00",
+      "order": 8
+    }
+  ]
+}

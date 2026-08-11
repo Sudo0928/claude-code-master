@@ -1,0 +1,15 @@
+# 메인 페이지에 강의를 보여줄 순서 (한 줄에 파일명 하나)
+#
+# - 여기 적지 않은 파일은 자동으로 목록 맨 뒤에 "최근에 수정된 것부터" 붙는다.
+# - 즉 이 파일을 건드리지 않아도 새 강의는 알아서 목록에 나타난다.
+#   순서를 직접 정하고 싶을 때만 아래에 파일명을 적어주면 된다.
+# - # 뒤는 주석으로 무시된다.
+
+claude-code-getting-started-lecture.html      # 설치와 첫 사용법
+claude-code-context-window-lecture.html       # 컨텍스트 윈도우
+claude-code-meta-prompting-lecture.html       # 메타 프롬프트
+claude-code-subagents-lecture.html            # 서브에이전트
+claude-code-agent-teams-lecture.html          # Agent Teams
+claude-code-hooks-lecture.html                # Hooks
+claude-code-skills-plugins-lecture.html       # 스킬과 플러그인
+claude-code-dynamic-workflows-lecture.html    # Dynamic Workflows
