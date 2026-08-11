@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Dynamic Workflows 완벽 가이드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --bg:#0B0B0D;
+  --panel:#161619;
+  --panel2:#1D1D22;
+  --line:#2A2A2F;
+  --line-soft:#1E1E23;
+  --orange:#FF5B1F;
+  --orange-hi:#FF8A57;
+  --orange-soft:rgba(255,91,31,.12);
+  --orange-bd:rgba(255,91,31,.38);
+  --txt:#F3F2EF;
+  --muted:#A2A2AB;
+  --dim:#77777F;
+  --cream:#F6F1E7;
+  --blue:#3D6FE0;
+  --green:#22A96B;
+  --purple:#8B5CF6;
+  --amber:#E8930C;
+  --red:#E14B3C;
+  --mono:'JetBrains Mono','SF Mono','Cascadia Code','D2Coding',Consolas,ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:#050506;
+  font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+  color:var(--txt);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+.deck{position:fixed;inset:0}
+.stage{
+  position:absolute;left:50%;top:50%;
+  width:1280px;height:720px;
+  transform:translate(-50%,-50%) scale(1);
+  transform-origin:center center;
+  background:var(--bg);
+  border-radius:6px;
+  overflow:hidden;
+  box-shadow:0 30px 90px rgba(0,0,0,.6);
+}
+
+/* ---------- slide frame ---------- */
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  opacity:0;visibility:hidden;
+  transform:translateY(16px);
+  transition:opacity .38s ease,transform .38s ease,visibility .38s;
+  pointer-events:none;
+}
+.slide.active{opacity:1;visibility:visible;transform:translateY(0);pointer-events:auto}
+
+.bar{
+  height:56px;flex:none;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 44px;
+  border-bottom:1px solid var(--line-soft);
+  background:rgba(11,11,13,.9);
+  z-index:5;
+}
+.brand{display:flex;align-items:center;gap:11px;font-size:14.5px}
+.brand .logo{width:19px;height:19px;flex:none;display:block}
+.brand b{font-weight:800;letter-spacing:-.2px}
+.brand i{font-style:normal;color:#3A3A40}
+.brand span{color:var(--muted);font-weight:500}
+.tag{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+
+.pagenum{
+  position:absolute;top:74px;right:48px;
+  font-size:14px;font-weight:700;color:#5C5C64;letter-spacing:.12em;
+  font-family:var(--mono);
+}
+.body{flex:1;min-height:0;padding:30px 64px 0;display:flex;flex-direction:column}
+.eyebrow{
+  color:var(--orange);font-size:15px;font-weight:800;letter-spacing:.14em;
+  margin-bottom:14px;
+}
+h1{font-size:41px;line-height:1.24;font-weight:800;letter-spacing:-.6px;margin-bottom:24px}
+h1 em{font-style:normal;color:var(--orange)}
+.lead{font-size:16.5px;color:var(--muted);line-height:1.62;margin:-8px 0 22px;max-width:980px}
+.lead b{color:#D8D8DC;font-weight:700}
+
+.takeaway{
+  flex:none;margin:auto 64px 32px;
+  background:var(--orange-soft);
+  border:1px solid var(--orange-bd);
+  border-radius:10px;
+  padding:13px 20px;text-align:center;
+  font-size:17px;font-weight:800;color:var(--orange);
+  letter-spacing:-.2px;
+}
+.takeaway b{color:var(--orange-hi)}
+
+/* ---------- numbered cards ---------- */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:13px;padding:16px 22px;
+  display:flex;gap:17px;align-items:flex-start;
+}
+.chip{
+  width:31px;height:31px;border-radius:8px;flex:none;margin-top:2px;
+  display:grid;place-items:center;
+  font-weight:800;font-size:15px;color:#fff;font-family:var(--mono);
+}
+.chip.b{background:var(--blue)} .chip.g{background:var(--green)}
+.chip.p{background:var(--purple)} .chip.a{background:var(--amber)}
+.chip.r{background:var(--red)} .chip.o{background:var(--orange)}
+.card h3{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.card h3 code{font-family:var(--mono);font-size:16px;color:var(--orange-hi);font-weight:700}
+.card p{font-size:14.5px;color:var(--muted);margin-top:5px;line-height:1.55}
+.card p code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+/* ---------- before/after vs ---------- */
+.vs{display:grid;grid-template-columns:1fr 52px 1fr;align-items:stretch}
+.vsbox{border-radius:15px;padding:24px 28px}
+.vsbox.was{background:#211311;border:1px solid #3C221B}
+.vsbox.now{background:#0E1727;border:1px solid #2B4A88}
+.vsbox .k{font-size:13.5px;font-weight:800;letter-spacing:.06em;margin-bottom:10px}
+.vsbox.was .k{color:#E0876A}
+.vsbox.now .k{color:#6FA1FF}
+.vsbox .t{font-size:22px;font-weight:800;letter-spacing:-.4px;line-height:1.35}
+.vsbox .d{font-size:14.5px;color:var(--muted);margin-top:9px;line-height:1.55}
+.vsarr{display:grid;place-items:center;color:#E4E4E8;font-size:26px}
+
+/* ---------- terminal / editor mockup ---------- */
+.term{background:#0D0D10;border:1px solid #26262C;border-radius:13px;overflow:hidden}
+.term .tb{
+  height:38px;display:flex;align-items:center;gap:8px;padding:0 15px;
+  background:#141418;border-bottom:1px solid #212127;
+}
+.dot{width:11px;height:11px;border-radius:50%}
+.dot.r{background:#FF5F57}.dot.y{background:#FEBC2E}.dot.g{background:#28C840}
+.term .tt{font-size:12.5px;color:#84848C;margin-left:7px;font-weight:600}
+.term pre{
+  margin:0;padding:18px 24px;
+  font-family:var(--mono);font-size:13.5px;line-height:1.8;
+  color:#D9D9DF;white-space:pre-wrap;word-break:break-all;
+}
+.term pre .p{color:var(--orange);font-weight:700}
+.term pre .k{color:#FF9264}
+.term pre .s{color:#8CD49A}
+.term pre .c{color:#67676F}
+.term pre .dm{color:#8A8A93}
+.term pre .ok{color:#3ACB82}
+.term pre .hl{color:#FFD9C4}
+
+/* light mac window */
+.win{background:#FFFFFF;border-radius:13px;overflow:hidden;color:#1C1C1E;box-shadow:0 14px 44px rgba(0,0,0,.45)}
+.win .tb{height:38px;display:flex;align-items:center;gap:8px;padding:0 15px;background:#F1EFEC;border-bottom:1px solid #E2DFDA}
+.win .tt{font-size:12.5px;color:#6E6A64;margin-left:7px;font-weight:600}
+
+/* ---------- table ---------- */
+.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.tbl th{
+  text-align:left;color:#87878F;font-weight:700;font-size:12.5px;letter-spacing:.08em;
+  padding:11px 18px;border-bottom:1px solid var(--line);background:#19191D;
+}
+.tbl td{padding:11.5px 18px;border-bottom:1px solid var(--line-soft);vertical-align:top;line-height:1.5}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .mono{font-family:var(--mono);font-size:13px;color:#FFC29E;white-space:nowrap}
+.tbl .mut{color:var(--muted)}
+
+/* ---------- 3-col grid cards ---------- */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:20px 22px}
+.gcard .gh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.gcard .gh .em{font-size:21px}
+.gcard h3{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.gcard h3 code{font-family:var(--mono);font-size:15.5px;color:var(--orange-hi)}
+.gcard .meta{font-family:var(--mono);font-size:11.5px;color:#8B8B94;background:#101013;border:1px solid #232329;border-radius:7px;padding:6px 10px;margin:9px 0 10px;line-height:1.6}
+.gcard p{font-size:13.8px;color:var(--muted);line-height:1.58}
+.gcard p b{color:#D9D9DE}
+.gcard p code{font-family:var(--mono);font-size:12.4px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+.gcard ul{list-style:none;margin-top:8px}
+.gcard ul li{font-size:13.5px;color:var(--muted);line-height:1.55;padding-left:15px;position:relative;margin-top:5px}
+.gcard ul li::before{content:"·";color:var(--orange);position:absolute;left:2px;font-weight:800}
+
+.note{position:relative;padding-left:22px;font-size:13.5px;color:#8D8D96;line-height:1.55;margin-top:15px}
+.note::before{content:"＊";position:absolute;left:0;top:0;color:var(--orange);font-weight:800}
+.note code{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#1E1E23;padding:1px 6px;border-radius:5px}
+.note b{color:#C9C9CF}
+
+/* ---------- cover ---------- */
+.cover-top{flex:1;min-height:0;background:var(--cream);position:relative;display:grid;place-items:center}
+.cover-bot{flex:none;background:#070708;padding:32px 64px 40px;border-top:1px solid #000}
+.badge{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:13px;font-weight:800;letter-spacing:.03em;
+  padding:6px 13px;border-radius:7px;margin-bottom:16px;
+}
+.cover-bot h1{font-size:52px;line-height:1.18;letter-spacing:-1.2px;margin-bottom:14px}
+.cover-bot .sub{font-size:17.5px;color:var(--muted)}
+.cover-bot .sub b{color:#EDEDEF}
+
+/* ---------- flow diagram(dark) ---------- */
+.flowwrap{background:#101013;border:1px solid var(--line);border-radius:15px;padding:10px 8px}
+
+/* ---------- two column layout helper ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.cols-64{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
+.cols-46{display:grid;grid-template-columns:1fr 1.35fr;gap:20px;align-items:start}
+
+/* mission time chip */
+.time{margin-left:auto;flex:none;font-family:var(--mono);font-size:12px;font-weight:700;color:#8F8F98;background:#111114;border:1px solid #26262C;padding:5px 11px;border-radius:20px}
+
+/* ---------- outro ---------- */
+.outro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:16px}
+.outro .eb{color:var(--orange);font-size:14.5px;font-weight:800;letter-spacing:.22em;margin-bottom:16px}
+.outro h1{font-size:40px;line-height:1.3;margin-bottom:14px}
+.outro .d{font-size:15.5px;color:var(--muted);line-height:1.65;margin-bottom:26px}
+.avatar{
+  width:118px;height:118px;border-radius:50%;
+  background:#141417;border:3px solid var(--orange);
+  display:grid;place-items:center;font-size:56px;margin-bottom:22px;
+  box-shadow:0 0 0 7px rgba(255,91,31,.09);
+}
+.cta{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:16.5px;font-weight:800;padding:13px 42px;border-radius:32px;
+  letter-spacing:-.2px;margin-bottom:26px;
+}
+.promo{
+  display:flex;align-items:center;gap:16px;text-align:left;
+  background:#121215;border:1px solid var(--line);border-radius:14px;
+  padding:14px 22px;
+}
+.promo .th{
+  width:92px;height:56px;border-radius:9px;flex:none;
+  background:linear-gradient(135deg,#2B1B4E,#0E0E12 60%);
+  border:1px solid #3A2E63;
+  display:grid;place-items:center;color:#C9B8FF;
+  font-family:var(--mono);font-size:9.5px;font-weight:800;text-align:center;line-height:1.5;
+}
+.promo .pt{font-size:16px;font-weight:800}
+.promo .pd{font-size:13px;color:var(--muted);margin-top:3px}
+.promo .hot{color:var(--orange);font-weight:800}
+
+.tbl{table-layout:fixed}
+.grid3>*,.grid2>*,.cols>*,.cols-64>*,.cols-46>*{min-width:0}
+
+/* ---------- controls ---------- */
+.hud{position:fixed;right:22px;bottom:16px;display:flex;align-items:center;gap:10px;z-index:50;user-select:none}
+.hud .cnt{font-family:var(--mono);font-size:12.5px;color:#6E6E76;letter-spacing:.08em;margin-right:2px}
+.hud button{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid #303036;background:#121215;color:#C9C9CF;
+  font-size:16px;cursor:pointer;transition:.18s;
+}
+.hud button:hover{border-color:var(--orange);color:var(--orange)}
+.hint{position:fixed;left:22px;bottom:21px;font-size:12px;color:#55555C;z-index:50;user-select:none}
+.toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%) translateY(8px);background:#1A1A1E;border:1px solid #3A3A40;color:#EDEDEF;font-size:13px;padding:10px 18px;border-radius:10px;z-index:60;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:80%;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.hint b{color:#7C7C84;font-weight:700}
+.progress{position:fixed;left:0;bottom:0;height:3px;background:var(--orange);width:0%;z-index:60;transition:width .3s ease}
+
+/* ---------- print ---------- */
+@media print{
+  body{overflow:visible;background:#0B0B0D}
+  .hud,.hint,.progress,.toast{display:none!important}
+  .deck{position:static}
+  .stage{position:static;transform:none!important;width:1280px;height:auto;box-shadow:none;border-radius:0;overflow:visible;left:auto;top:auto;margin:0 auto}
+  .slide{position:relative;opacity:1!important;visibility:visible!important;transform:none!important;width:1280px;height:720px;page-break-after:always;break-inside:avoid}
+}
+@page{size:1280px 720px;margin:0}
+
+.sum{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:17px 24px;display:flex;align-items:center;gap:22px}
+.sum .n{font-family:var(--mono);font-size:15px;font-weight:800;color:#6C6C74;flex:none}
+.sum .k{font-size:21px;font-weight:800;letter-spacing:-.3px;width:96px;flex:none}
+.sum .k em{font-style:normal;color:var(--orange)}
+.sum .d{font-size:15px;color:var(--muted);line-height:1.5}
+.sum .d code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+/* ---------- prompt / code panel ---------- */
+.pp{background:#0D0D10;border:1px solid #26262C;border-radius:13px;overflow:hidden}
+.pp .ph{display:flex;align-items:center;gap:9px;padding:9px 16px;background:#141418;border-bottom:1px solid #212127}
+.pp .ph .ic{width:16px;height:16px;color:var(--orange);flex:none}
+.pp .ph .t{font-size:12.5px;font-weight:800;color:#C0C0C8;letter-spacing:-.1px}
+.pp .ph .tag2{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:#6E6E76;letter-spacing:.06em}
+.pp pre{margin:0;padding:15px 20px;font-family:var(--mono);font-size:12.8px;line-height:1.82;color:#D9D9DF;white-space:pre-wrap;word-break:keep-all}
+.pp pre.tight{font-size:12px;line-height:1.72;padding:13px 18px}
+.pp pre .c{color:#67676F}.pp pre .k{color:#FF9264}.pp pre .s{color:#8CD49A}.pp pre .hl{color:#FFD9C4}
+.pp pre .f{color:#7FB2FF}.pp pre .n{color:#C9A6F5}
+
+.step{display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 20px}
+.step .n{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--orange);flex:none}
+.step .t{font-size:15.5px;font-weight:700}
+.step .d{font-size:13.5px;color:var(--muted);margin-left:auto;text-align:right}
+
+.keyrow{display:flex;gap:14px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 18px;margin-bottom:9px}
+.keyrow .kb{font-family:var(--mono);font-size:13px;font-weight:800;color:#FFC29E;background:#1E1E23;border:1px solid #33333A;border-radius:7px;padding:6px 11px;flex:none;min-width:104px;text-align:center}
+.keyrow .kb.hot{color:#fff;background:var(--orange);border-color:var(--orange)}
+.keyrow h3{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.keyrow p{font-size:13.2px;color:var(--muted);margin-top:3px;line-height:1.5}
+.keyrow p b{color:#D9D9DE}
+.keyrow p code{font-family:var(--mono);font-size:12.3px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+.gcard.warn{border-color:#4A2A24;background:#191211}
+.gcard.warn h3{color:#FF8A57}
+.gcard.good{border-color:#1F4A33;background:#0E1A13}
+.gcard.good h3{color:#3ACB82}
+
+.mode{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px 20px;position:relative;overflow:hidden}
+.mode::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+.mode.m1::after{background:#3ACB82}.mode.m2::after{background:var(--orange)}.mode.m3::after{background:#E14B3C}
+.mode .mh{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.mode .mh h3{font-size:17px;font-weight:800;letter-spacing:-.3px}
+.mode .mh .tg{margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;color:#0B0B0D;border-radius:5px;padding:3px 8px}
+.mode.m1 .mh .tg{background:#3ACB82}.mode.m2 .mh .tg{background:var(--orange);color:#fff}.mode.m3 .mh .tg{background:#E14B3C;color:#fff}
+.mode p{font-size:13.4px;color:var(--muted);line-height:1.56}
+.mode p b{color:#D9D9DE}
+.mode p code{font-family:var(--mono);font-size:12.4px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+/* ---------- dynamic workflows deck 전용 ---------- */
+.fn{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 19px;margin-bottom:9px}
+.fn .sig{font-family:var(--mono);font-size:13.3px;font-weight:700;color:#9FBFFF;letter-spacing:-.2px;line-height:1.5}
+.fn .sig b{color:var(--orange);font-weight:800}
+.fn p{font-size:13.1px;color:var(--muted);margin-top:5px;line-height:1.52}
+.fn p b{color:#D9D9DE}
+.fn p code{font-family:var(--mono);font-size:12.2px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+.opt{display:flex;gap:13px;align-items:flex-start;padding:8.5px 0;border-bottom:1px solid var(--line-soft)}
+.opt:last-child{border-bottom:0}
+.opt .on{font-family:var(--mono);font-size:12.6px;font-weight:800;color:#FFC29E;flex:none;width:88px;padding-top:1px}
+.opt .od{font-size:13px;color:var(--muted);line-height:1.52}
+.opt .od b{color:#D9D9DE}
+.opt .od code{font-family:var(--mono);font-size:12.1px;color:#FFC29E;background:#232327;padding:1px 5px;border-radius:5px}
+.optbox{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:6px 22px}
+
+.yn{display:flex;gap:12px;align-items:flex-start;border-radius:11px;padding:11px 17px;margin-bottom:8px;border:1px solid}
+.yn.y{background:#0E1A13;border-color:#1F4A33}
+.yn.n{background:#1A1011;border-color:#4A2226}
+.yn .m{font-size:15px;font-weight:800;flex:none;width:17px;text-align:center;line-height:1.4;font-family:var(--mono)}
+.yn.y .m{color:#3ACB82} .yn.n .m{color:#E14B3C}
+.yn .tx{font-size:13.3px;color:var(--muted);line-height:1.55}
+.yn .tx b{color:#E4E4E8;font-weight:700}
+.yn .tx code{font-family:var(--mono);font-size:12.2px;color:#FFC29E;background:#1E1E23;padding:1px 6px;border-radius:5px}
+
+.pat{display:flex;gap:14px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 19px;margin-bottom:9px}
+.pat .pi{width:29px;height:29px;border-radius:9px;flex:none;display:grid;place-items:center;font-size:15px;background:#1E1E23;border:1px solid #33333A}
+.pat h3{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.pat h3 span{font-family:var(--mono);font-size:11.5px;font-weight:700;color:#7A7A83;margin-left:8px;letter-spacing:0}
+.pat p{font-size:13.1px;color:var(--muted);margin-top:4px;line-height:1.52}
+.pat p b{color:#D9D9DE}
+.pat p code{font-family:var(--mono);font-size:12.2px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+.lim{display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 20px;margin-bottom:9px}
+.lim .num{font-family:var(--mono);font-size:24px;font-weight:800;color:var(--orange);flex:none;width:150px;letter-spacing:-.8px}
+.lim .lt{font-size:15px;font-weight:800;letter-spacing:-.3px;flex:none;width:180px}
+.lim .ld{font-size:13.2px;color:var(--muted);line-height:1.5}
+.lim .ld b{color:#D9D9DE}
+.lim .ld code{font-family:var(--mono);font-size:12.2px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+</style>
+</head>
+<body>
+<div class="deck">
+<div class="stage" id="stage">
+<svg style="display:none" aria-hidden="true"><symbol id="spark" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2.7" stroke-linecap="round" fill="none"><path d="M12 2.6v18.8M2.6 12h18.8M5.4 5.4l13.2 13.2M18.6 5.4L5.4 18.6"/></g></symbol></svg>
+
+<!-- ═══════════ 01 · COVER ═══════════ -->
+<section class="slide active">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="cover-top">
+    <div style="width:90%">
+      <svg viewBox="0 0 1020 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ca" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#A29A89"/></marker>
+          <marker id="co" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#FF5B1F"/></marker>
+        </defs>
+        <!-- 스크립트 -->
+        <rect x="8" y="52" width="188" height="176" rx="14" fill="#FF5B1F"/>
+        <text x="102" y="80" text-anchor="middle" font-size="14" font-weight="800" fill="#FFFFFF" font-family="inherit">워크플로우 스크립트</text>
+        <g font-family="ui-monospace,monospace" font-size="11.5" fill="#FFE3D6">
+          <text x="30" y="108">phase('Find')</text>
+          <text x="30" y="130">pipeline(items,</text>
+          <text x="30" y="152">  find, verify)</text>
+          <text x="30" y="174">while (budget…)</text>
+        </g>
+        <text x="102" y="204" text-anchor="middle" font-size="10.5" fill="#FFD0BC" font-family="inherit">제어 흐름은 코드가 정한다</text>
+        <line x1="200" y1="140" x2="238" y2="140" stroke="#A29A89" stroke-width="1.6" marker-end="url(#ca)"/>
+
+        <!-- Phase 1 -->
+        <rect x="244" y="30" width="238" height="220" rx="15" fill="#EDE6D8" stroke="#CFC7B6" stroke-width="1.4" stroke-dasharray="7 5"/>
+        <text x="363" y="54" text-anchor="middle" font-size="12" font-weight="800" fill="#8C8474" font-family="inherit">PHASE · 팬아웃</text>
+        <g font-family="inherit">
+          <rect x="266" y="68" width="194" height="46" rx="11" fill="#FFFFFF" stroke="#B7AF9F" stroke-width="1.6"/>
+          <text x="363" y="88" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3F3A31">agent · 관점 A</text>
+          <text x="363" y="104" text-anchor="middle" font-size="10" fill="#8C8474">독립 컨텍스트 · schema 반환</text>
+          <rect x="266" y="124" width="194" height="46" rx="11" fill="#FFFFFF" stroke="#B7AF9F" stroke-width="1.6"/>
+          <text x="363" y="144" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3F3A31">agent · 관점 B</text>
+          <text x="363" y="160" text-anchor="middle" font-size="10" fill="#8C8474">독립 컨텍스트 · schema 반환</text>
+          <rect x="266" y="180" width="194" height="46" rx="11" fill="#FFFFFF" stroke="#B7AF9F" stroke-width="1.6"/>
+          <text x="363" y="200" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3F3A31">agent · 관점 C</text>
+          <text x="363" y="216" text-anchor="middle" font-size="10" fill="#8C8474">독립 컨텍스트 · schema 반환</text>
+        </g>
+        <!-- 파이프라인 화살표(배리어 없음) -->
+        <line x1="464" y1="91" x2="524" y2="91" stroke="#FF5B1F" stroke-width="2" marker-end="url(#co)"/>
+        <line x1="464" y1="147" x2="524" y2="147" stroke="#FF5B1F" stroke-width="2" marker-end="url(#co)"/>
+        <line x1="464" y1="203" x2="524" y2="203" stroke="#FF5B1F" stroke-width="2" marker-end="url(#co)"/>
+
+        <!-- Phase 2 -->
+        <rect x="530" y="30" width="238" height="220" rx="15" fill="#EDE6D8" stroke="#CFC7B6" stroke-width="1.4" stroke-dasharray="7 5"/>
+        <text x="649" y="54" text-anchor="middle" font-size="12" font-weight="800" fill="#8C8474" font-family="inherit">PHASE · 적대적 검증</text>
+        <g font-family="inherit">
+          <rect x="552" y="68" width="194" height="46" rx="11" fill="#FFFFFF" stroke="#B7AF9F" stroke-width="1.6"/>
+          <text x="649" y="88" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3F3A31">반증 시도 ×3</text>
+          <text x="649" y="104" text-anchor="middle" font-size="10" fill="#8C8474">과반이 반박하면 폐기</text>
+          <rect x="552" y="124" width="194" height="46" rx="11" fill="#FFFFFF" stroke="#B7AF9F" stroke-width="1.6"/>
+          <text x="649" y="144" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3F3A31">반증 시도 ×3</text>
+          <text x="649" y="160" text-anchor="middle" font-size="10" fill="#8C8474">과반이 반박하면 폐기</text>
+          <rect x="552" y="180" width="194" height="46" rx="11" fill="#FFFFFF" stroke="#B7AF9F" stroke-width="1.6"/>
+          <text x="649" y="200" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3F3A31">반증 시도 ×3</text>
+          <text x="649" y="216" text-anchor="middle" font-size="10" fill="#8C8474">과반이 반박하면 폐기</text>
+        </g>
+        <path d="M750 91 q60 0 60 49" fill="none" stroke="#A29A89" stroke-width="1.5" marker-end="url(#ca)"/>
+        <line x1="750" y1="147" x2="812" y2="147" stroke="#A29A89" stroke-width="1.5" marker-end="url(#ca)"/>
+        <path d="M750 203 q60 0 60 -49" fill="none" stroke="#A29A89" stroke-width="1.5" marker-end="url(#ca)"/>
+
+        <!-- 종합 -->
+        <rect x="820" y="104" width="192" height="72" rx="13" fill="#3F3A31"/>
+        <text x="916" y="134" text-anchor="middle" font-size="14" font-weight="800" fill="#F6F1E7" font-family="inherit">확정된 결과만</text>
+        <text x="916" y="154" text-anchor="middle" font-size="10.5" fill="#BCB4A4" font-family="inherit">스크립트가 return 한다</text>
+        <text x="510" y="278" text-anchor="middle" font-size="11.5" font-weight="800" fill="#B23F14" font-family="inherit">A가 검증받는 동안 B는 아직 탐색 중이어도 된다 — 파이프라인에는 대기선이 없다</text>
+      </svg>
+    </div>
+  </div>
+  <div class="cover-bot">
+    <span class="badge">• 클로드 코드 완벽 마스터 · 수업 자료</span>
+    <h1>지시가 아니라<br><em style="color:var(--orange);font-style:normal">대본을</em> 쓴다</h1>
+    <div class="sub">Claude Code <b>Dynamic Workflows</b> 완벽 가이드 &nbsp;·&nbsp; Workflow 도구 명세 기반 · 2026.08</div>
+  </div>
+</section>
+
+<!-- ═══════════ 02 · WHY ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">02</div>
+  <div class="body">
+    <div class="eyebrow">문제 인식 · WHY</div>
+    <h1>모델이 지휘하면 <em>매번 다른 공연이 된다</em></h1>
+    <div class="lead">에이전트를 여러 개 띄우는 것 자체는 이미 할 수 있다. 문제는 <b>몇 명을 띄울지, 무엇을 먼저 할지, 언제 멈출지</b>를 모델의 그때그때 판단에 맡긴다는 점이다. 재현되지 않는 오케스트레이션은 검증할 수도, 재개할 수도 없다.</div>
+    <div class="vs">
+      <div class="vsbox was">
+        <div class="k">모델이 흐름을 결정</div>
+        <div class="t">같은 요청, 매번<br>다른 실행 경로</div>
+        <div class="d">"세 개쯤 띄우고 적당히 합쳐줘"는 <b style="color:#F0B49B">몇 개가 실제로 돌았는지 아무도 모른다</b>. 중간에 끊기면 처음부터 다시다.</div>
+      </div>
+      <div class="vsarr">→</div>
+      <div class="vsbox now">
+        <div class="k">코드가 흐름을 결정</div>
+        <div class="t">스크립트가 흐름을<br>고정한다</div>
+        <div class="d">루프·조건·팬아웃은 <b style="color:#CFE0FF">자바스크립트가 결정</b>하고, 모델은 각 칸을 채우는 일만 맡는다. 같은 스크립트는 같은 구조로 돈다.</div>
+      </div>
+    </div>
+    <div class="note">워크플로우가 답하는 질문은 셋이다 — <b>빠짐없이 봤는가</b>(포괄성), <b>믿을 만한가</b>(확신), <b>한 컨텍스트에 안 들어가는 일인가</b>(규모). 이 셋 중 어디에도 안 걸리면 그냥 혼자 하는 게 빠르다.</div>
+  </div>
+  <div class="takeaway">제어 흐름은 <b>코드</b>가, 판단은 <b>모델</b>이</div>
+</section>
+
+<!-- ═══════════ 03 · WHAT ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">03</div>
+  <div class="body">
+    <div class="eyebrow">정의 · WHAT</div>
+    <h1>워크플로우는 <em>에이전트를 부리는 스크립트</em>다</h1>
+    <div class="cols-64">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">가장 작은 완성된 워크플로우</span><span class="tag2">JS</span></div>
+        <pre><span class="k">export const</span> meta = {
+  name: <span class="s">'find-flaky-tests'</span>,
+  description: <span class="s">'깨지는 테스트를 찾아 고친다'</span>,
+  phases: [
+    { title: <span class="s">'Scan'</span>, detail: <span class="s">'CI 로그에서 재시도 흔적'</span> },
+    { title: <span class="s">'Fix'</span>,  detail: <span class="s">'테스트 하나당 에이전트 하나'</span> },
+  ],
+}
+
+<span class="f">phase</span>(<span class="s">'Scan'</span>)
+<span class="k">const</span> flaky = <span class="k">await</span> <span class="f">agent</span>(<span class="s">'CI 로그에서 retry 마커를 찾아라'</span>,
+                          { schema: FLAKY_SCHEMA })
+
+<span class="f">phase</span>(<span class="s">'Fix'</span>)
+<span class="k">const</span> fixes = <span class="k">await</span> <span class="f">pipeline</span>(flaky.tests,
+  t =&gt; <span class="f">agent</span>(<span class="s">`${t.name} 의 불안정 원인을 고쳐라`</span>))
+
+<span class="k">return</span> { fixes }</pre>
+      </div>
+      <div>
+        <div class="gcard" style="padding:15px 19px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🌙</span><h3>백그라운드로 돈다</h3></div>
+          <p style="font-size:13.2px">호출하면 <b>즉시 태스크 ID를 돌려주고</b> 뒤에서 실행된다. 끝나면 알림이 오고, 진행 상황은 <code>/workflows</code>로 실시간으로 본다.</p>
+        </div>
+        <div class="gcard" style="padding:15px 19px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">💾</span><h3>스크립트는 자동으로 남는다</h3></div>
+          <p style="font-size:13.2px">모든 실행은 스크립트를 세션 디렉터리에 저장하고 <b style="color:#D9D9DE">경로를 결과에 실어 준다</b>. 고쳐서 <code>scriptPath</code>로 다시 돌리면 된다.</p>
+        </div>
+        <div class="gcard warn" style="padding:15px 19px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">📄</span><h3>파일로 먼저 쓰지 않는다</h3></div>
+          <p style="font-size:13.2px">최초 실행은 <code>script</code>에 <b>인라인으로</b> 넘긴다. Write로 파일을 만든 뒤 실행하는 순서가 아니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">대본을 쓰고, <b>배우를 부른다</b></div>
+</section>
+
+<!-- ═══════════ 04 · 세 가지 동기 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">04</div>
+  <div class="body">
+    <div class="eyebrow">쓰는 이유 · MOTIVES</div>
+    <h1>세 가지 중 하나에 걸릴 때만 <em>값어치를 한다</em></h1>
+    <div class="grid3">
+      <div class="gcard">
+        <div class="gh"><span class="em">🕸️</span><h3>포괄성</h3></div>
+        <div class="meta">Comprehensive</div>
+        <p>일을 <b>쪼개서 병렬로 덮는다</b>. 혼자 순차로 훑으면 뒤로 갈수록 앞을 잊는다. 감사·전수 조사·다각도 리서치가 여기 속한다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">⚖️</span><h3>확신</h3></div>
+        <div class="meta">Confident</div>
+        <p>결론을 내리기 전에 <b>독립적 관점과 적대적 검증</b>을 통과시킨다. 그럴듯하지만 틀린 발견을 걸러 내는 것이 목적이다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">🏗️</span><h3>규모</h3></div>
+        <div class="meta">Scale</div>
+        <p>한 컨텍스트 창에 <b>애초에 들어가지 않는 일</b>. 대규모 마이그레이션, 저장소 전체 스윕, 수백 개 파일 변환이 대표적이다.</p>
+      </div>
+    </div>
+    <div class="note" style="margin-top:20px"><b style="color:#FF8A57">반대로</b> — 파일 하나를 고치는 일, 이미 답을 아는 질문, 대화형 응답에는 쓰지 않는다. 에이전트 스폰 비용이 작업 자체보다 비싸진다.</div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="gcard good" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">✅</span><h3>어울리는 일</h3></div>
+        <p style="font-size:13.2px">"이 저장소를 <b>철저히 감사</b>해줘" · "이 API를 <b>전 파일에서</b> 새 시그니처로 옮겨줘" · "<b>설계안 셋</b>을 만들어 비교해줘"</p>
+      </div>
+      <div class="gcard warn" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">🚫</span><h3>어울리지 않는 일</h3></div>
+        <p style="font-size:13.2px">"이 오타 고쳐줘" · "이 함수 뭐 하는 거야" · "테스트 한 번 돌려줘" — <b>혼자 하는 편이 빠르고 싸다</b>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 05 · 옵트인 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">05</div>
+  <div class="body">
+    <div class="eyebrow">발동 조건 · OPT-IN</div>
+    <h1>아무 때나 돌지 않는다 — <em>명시적 동의</em>가 필요하다</h1>
+    <div class="lead">워크플로우는 에이전트를 수십 개까지 띄우고 토큰을 크게 쓴다. 그래서 <b>"이건 워크플로우가 어울리겠다"는 추론만으로는 발동되지 않는다</b>. 사용자가 그 규모를 요청해야 한다.</div>
+    <div class="cards" style="gap:10px">
+      <div class="card" style="padding:13px 20px"><div class="chip o">1</div><div>
+        <h3>프롬프트에 <code>ultracode</code>를 넣었을 때</h3>
+        <p>그 턴 한정으로 오케스트레이션이 열린다.</p>
+      </div></div>
+      <div class="card" style="padding:13px 20px"><div class="chip b">2</div><div>
+        <h3>세션 전체에 ultracode가 켜져 있을 때</h3>
+        <p>매 작업마다 기본으로 워크플로우를 짜는 상시 동의 상태다.</p>
+      </div></div>
+      <div class="card" style="padding:13px 20px"><div class="chip g">3</div><div>
+        <h3>사용자가 자기 말로 요청했을 때</h3>
+        <p>"워크플로우 써줘", "에이전트 팬아웃해", "서브에이전트로 나눠서 돌려" — <b style="color:#D9D9DE">사용자의 표현</b>이어야 한다.</p>
+      </div></div>
+      <div class="card" style="padding:13px 20px"><div class="chip p">4</div><div>
+        <h3>스킬·슬래시 커맨드가 호출을 지시할 때</h3>
+        <p>스킬 내부 지침이 워크플로우 실행을 명령하면 그 자체가 동의다.</p>
+      </div></div>
+      <div class="card" style="padding:13px 20px"><div class="chip a">5</div><div>
+        <h3>저장된 워크플로우를 이름으로 부를 때</h3>
+        <p><code>.claude/workflows/</code>에 넣어 둔 대본을 이름으로 지목하는 경우.</p>
+      </div></div>
+    </div>
+    <div class="note">해당 없으면? 혼자 하거나, <b>"워크플로우로 돌리면 이런 걸 할 수 있고 비용은 대략 이만큼"</b>이라고 알리고 물어본다. 마음대로 함대를 띄우지 않는다.</div>
+  </div>
+  <div class="takeaway">비싼 도구에는 <b>명시적 스위치</b>가 달려 있다</div>
+</section>
+
+<!-- ═══════════ 06 · meta ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">06</div>
+  <div class="body">
+    <div class="eyebrow">문법 ① · META</div>
+    <h1>모든 스크립트는 <em>meta로 시작한다</em></h1>
+    <div class="cols">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">meta 블록 · 전체 필드</span><span class="tag2">REQUIRED</span></div>
+        <pre><span class="k">export const</span> meta = {
+  name: <span class="s">'audit-auth-flow'</span>,          <span class="c">// 필수</span>
+  description: <span class="s">'인증 흐름 보안 감사'</span>,  <span class="c">// 필수</span>
+  whenToUse: <span class="s">'로그인·세션 코드를 손댄 뒤'</span>, <span class="c">// 선택</span>
+  phases: [                          <span class="c">// 선택</span>
+    { title: <span class="s">'Map'</span>,    detail: <span class="s">'진입점 수집'</span> },
+    { title: <span class="s">'Attack'</span>, detail: <span class="s">'취약점 탐색'</span> },
+    { title: <span class="s">'Verify'</span>, detail: <span class="s">'반증 시도'</span>,
+      model: <span class="s">'opus'</span> },
+  ],
+}</pre>
+      </div>
+      <div>
+        <div class="keyrow"><div class="kb hot">순수 리터럴</div><div>
+          <h3>계산된 값은 넣을 수 없다</h3>
+          <p>변수·함수 호출·스프레드·템플릿 보간 <b>전부 금지</b>. 실행 전에 읽히는 블록이기 때문이다.</p>
+        </div></div>
+        <div class="keyrow"><div class="kb">description</div><div>
+          <h3>권한 대화상자에 그대로 뜬다</h3>
+          <p>사용자가 승인 여부를 판단할 <b>한 줄</b>이다. 무엇을 하는지 정확히 쓴다.</p>
+        </div></div>
+        <div class="keyrow"><div class="kb">phases</div><div>
+          <h3>제목이 <code>phase()</code>와 정확히 일치해야 한다</h3>
+          <p>문자열 완전 일치로 묶인다. 짝이 없는 <code>phase()</code>는 자기만의 그룹 상자를 갖는다.</p>
+        </div></div>
+        <div class="keyrow" style="margin-bottom:0"><div class="kb">whenToUse</div><div>
+          <h3>워크플로우 목록에 노출된다</h3>
+          <p>저장해서 재사용할 대본이라면 <b style="color:#D9D9DE">언제 쓰는지</b>를 여기 적어 둔다.</p>
+        </div></div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">meta는 <b>사용자에게 보여 주는 얼굴</b>이다</div>
+</section>
+
+<!-- ═══════════ 07 · API 지도 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">07</div>
+  <div class="body">
+    <div class="eyebrow">문법 ② · API 지도</div>
+    <h1>스크립트가 쓸 수 있는 <em>훅은 여덟 개</em>뿐이다</h1>
+    <div class="fn">
+      <div class="sig"><b>agent</b>(prompt, opts?) → Promise&lt;any&gt;</div>
+      <p>서브에이전트 하나를 띄운다. <code>schema</code>가 없으면 <b>최종 텍스트(문자열)</b>, 있으면 <b>검증된 객체</b>를 돌려준다.</p>
+    </div>
+    <div class="fn">
+      <div class="sig"><b>pipeline</b>(items, stage1, stage2, …) → Promise&lt;any[]&gt;</div>
+      <p>각 아이템을 <b style="color:#D9D9DE">서로 기다리지 않고</b> 모든 스테이지에 통과시킨다. <b>다중 스테이지 작업의 기본값</b>이다.</p>
+    </div>
+    <div class="fn">
+      <div class="sig"><b>parallel</b>(thunks) → Promise&lt;any[]&gt;</div>
+      <p>동시에 돌리고 <b style="color:#FF8A57">전부 끝날 때까지 기다린다</b> — 대기선(배리어)이다. 실패한 항목은 <code>null</code>이 되며 호출 자체는 실패하지 않는다.</p>
+    </div>
+    <div class="grid2" style="gap:9px">
+      <div class="fn" style="margin-bottom:0">
+        <div class="sig"><b>phase</b>(title) · <b>log</b>(message)</div>
+        <p>진행 그룹을 나누고, 사용자에게 한 줄 진행 메시지를 띄운다.</p>
+      </div>
+      <div class="fn" style="margin-bottom:0">
+        <div class="sig"><b>args</b> · <b>budget</b></div>
+        <p>호출 시 넘긴 입력값과, 이번 턴의 토큰 예산 정보.</p>
+      </div>
+    </div>
+    <div class="fn" style="margin-top:9px;margin-bottom:0">
+      <div class="sig"><b>workflow</b>(nameOrRef, args?) → Promise&lt;any&gt;</div>
+      <p>다른 워크플로우를 하위 단계로 실행한다. <b>중첩은 한 단계까지</b> — 자식 안에서 또 부르면 예외가 난다.</p>
+    </div>
+  </div>
+  <div class="takeaway">훅은 적고, <b>조합은 무한하다</b></div>
+</section>
+
+<!-- ═══════════ 08 · agent 심화 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">08</div>
+  <div class="body">
+    <div class="eyebrow">문법 ③ · agent 옵션</div>
+    <h1><code style="font-family:var(--mono);font-size:34px;color:var(--orange-hi)">agent()</code>의 옵션 <em>일곱 가지</em></h1>
+    <div class="optbox">
+      <div class="opt"><div class="on">label</div><div class="od">진행 화면에 뜨는 이름을 바꾼다. <code>review:auth.ts</code>처럼 <b>무엇을 보고 있는지</b>가 드러나게 쓴다.</div></div>
+      <div class="opt"><div class="on">phase</div><div class="od">이 에이전트를 특정 진행 그룹에 <b>명시적으로</b> 넣는다. <code>pipeline</code>·<code>parallel</code> 안에서는 전역 <code>phase()</code>가 경합하므로 <b style="color:#D9D9DE">반드시 이 옵션을 쓴다</b>.</div></div>
+      <div class="opt"><div class="on">schema</div><div class="od">JSON 스키마를 주면 에이전트가 구조화 출력 도구를 <b>강제로</b> 호출하고, 검증된 객체가 반환된다.</div></div>
+      <div class="opt"><div class="on">model</div><div class="od">모델을 바꾼다. <b style="color:#FF8A57">기본은 생략</b> — 생략하면 세션 모델을 물려받고, 그게 거의 항상 옳다.</div></div>
+      <div class="opt"><div class="on">effort</div><div class="od">추론 강도. <code>low</code>는 기계적인 단계에, <code>xhigh</code>·<code>max</code>는 가장 어려운 검증·심판 단계에만 쓴다.</div></div>
+      <div class="opt"><div class="on">isolation</div><div class="od"><code>'worktree'</code>면 전용 git 워크트리에서 돈다. <b style="color:#FF8A57">비싸다</b> — 병렬로 파일을 고쳐 충돌이 날 때만.</div></div>
+      <div class="opt"><div class="on">agentType</div><div class="od">커스텀 서브에이전트 타입을 지정한다. <code>schema</code>와 <b>함께 쓸 수 있다</b>.</div></div>
+    </div>
+    <div class="note"><b style="color:#FF8A57">반드시 기억할 것</b> — 사용자가 중간에 건너뛰거나 API 오류로 죽으면 <code>agent()</code>는 <b>null을 돌려준다</b>. 결과를 쓰기 전에 <code>.filter(Boolean)</code>을 습관처럼 붙인다.</div>
+  </div>
+  <div class="takeaway">기본값을 믿고, <b>필요할 때만 덮어쓴다</b></div>
+</section>
+
+<!-- ═══════════ 09 · schema ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">09</div>
+  <div class="body">
+    <div class="eyebrow">문법 ④ · SCHEMA</div>
+    <h1>파싱하지 말고 <em>스키마를 건네자</em></h1>
+    <div class="cols">
+      <div>
+        <div class="pp" style="margin-bottom:12px">
+          <div class="ph"><svg class="ic" style="color:#E14B3C"><use href="#spark"/></svg><span class="t">스키마 없이 — 문자열이 온다</span><span class="tag2">FRAGILE</span></div>
+          <pre class="tight"><span class="k">const</span> txt = <span class="k">await</span> <span class="f">agent</span>(<span class="s">'버그를 JSON으로 내놔'</span>)
+<span class="k">const</span> bugs = JSON.<span class="f">parse</span>(txt)  <span class="c">// 💥 설명이 섞이면 터진다</span></pre>
+        </div>
+        <div class="pp">
+          <div class="ph"><svg class="ic" style="color:#3ACB82"><use href="#spark"/></svg><span class="t">스키마를 주면 — 검증된 객체가 온다</span><span class="tag2">SAFE</span></div>
+          <pre class="tight"><span class="k">const</span> BUGS = {
+  type: <span class="s">'object'</span>,
+  properties: {
+    bugs: { type: <span class="s">'array'</span>, items: { type: <span class="s">'object'</span>,
+      properties: {
+        file:     { type: <span class="s">'string'</span> },
+        line:     { type: <span class="s">'number'</span> },
+        severity: { <span class="k">enum</span>: [<span class="s">'high'</span>,<span class="s">'med'</span>,<span class="s">'low'</span>] },
+      }, required: [<span class="s">'file'</span>,<span class="s">'severity'</span>] } },
+  }, required: [<span class="s">'bugs'</span>],
+}
+
+<span class="k">const</span> r = <span class="k">await</span> <span class="f">agent</span>(<span class="s">'버그를 찾아라'</span>, { schema: BUGS })
+r.bugs.<span class="f">filter</span>(b =&gt; b.severity === <span class="s">'high'</span>)  <span class="c">// 바로 쓴다</span></pre>
+        </div>
+      </div>
+      <div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🔒</span><h3>검증이 도구 층에서 일어난다</h3></div>
+          <p style="font-size:13.3px">스키마를 주면 에이전트는 구조화 출력 도구를 <b>반드시 호출해야 한다</b>. 형식이 안 맞으면 <b style="color:#D9D9DE">모델이 그 자리에서 다시 시도</b>한다 — 내 스크립트까지 깨진 값이 흘러오지 않는다.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🤖</span><h3>에이전트는 사람에게 말하지 않는다</h3></div>
+          <p style="font-size:13.3px">서브에이전트에게는 <b>"네 최종 텍스트가 곧 반환값이다"</b>라고 미리 알려져 있다. 그래서 인사말이나 요약 없이 <b style="color:#D9D9DE">날것의 데이터</b>를 돌려준다.</p>
+        </div>
+        <div class="gcard warn" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">⚠️</span><h3>필수 필드를 아끼지 말자</h3></div>
+          <p style="font-size:13.3px"><code>required</code>가 비면 모델은 편한 필드만 채운다. <b>뒤 단계에서 반드시 읽을 값</b>은 전부 required에 넣는다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">텍스트를 <b>믿지 말고 강제하라</b></div>
+</section>
+
+<!-- ═══════════ 10 · pipeline vs parallel ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">10</div>
+  <div class="body">
+    <div class="eyebrow">핵심 개념 · THE BARRIER</div>
+    <h1>이 강의의 심장 — <em>대기선이 시간을 태운다</em></h1>
+    <div class="flowwrap" style="padding:14px 14px">
+      <svg viewBox="0 0 1124 236" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="ba" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6E6E76"/></marker></defs>
+        <!-- 위: parallel 배리어 -->
+        <text x="14" y="18" font-size="12.5" font-weight="800" fill="#E0876A" font-family="inherit">parallel · 배리어가 있다</text>
+        <g font-family="ui-monospace,monospace" font-size="10" fill="#77777F">
+          <text x="14" y="42">A</text><text x="14" y="64">B</text><text x="14" y="86">C</text>
+        </g>
+        <!-- stage1 -->
+        <rect x="34" y="32" width="150" height="14" rx="4" fill="#3A2A24" stroke="#5C3D31"/>
+        <rect x="34" y="54" width="330" height="14" rx="4" fill="#3A2A24" stroke="#5C3D31"/>
+        <rect x="34" y="76" width="210" height="14" rx="4" fill="#3A2A24" stroke="#5C3D31"/>
+        <text x="109" y="43" text-anchor="middle" font-size="9.5" fill="#E0AF98" font-family="inherit">찾기</text>
+        <text x="199" y="65" text-anchor="middle" font-size="9.5" fill="#E0AF98" font-family="inherit">찾기</text>
+        <text x="139" y="87" text-anchor="middle" font-size="9.5" fill="#E0AF98" font-family="inherit">찾기</text>
+        <!-- 유휴 -->
+        <rect x="186" y="32" width="176" height="14" rx="4" fill="#1A1A1E" stroke="#2C2C32" stroke-dasharray="3 3"/>
+        <rect x="246" y="76" width="116" height="14" rx="4" fill="#1A1A1E" stroke="#2C2C32" stroke-dasharray="3 3"/>
+        <text x="274" y="43" text-anchor="middle" font-size="9" fill="#6E6E76" font-family="inherit">놀고 있다</text>
+        <text x="304" y="87" text-anchor="middle" font-size="9" fill="#6E6E76" font-family="inherit">놀고 있다</text>
+        <!-- 배리어 라인 -->
+        <line x1="366" y1="26" x2="366" y2="100" stroke="#E14B3C" stroke-width="2" stroke-dasharray="4 3"/>
+        <text x="374" y="24" font-size="10.5" font-weight="800" fill="#E14B3C" font-family="inherit">여기서 전원 대기</text>
+        <!-- stage2 -->
+        <rect x="370" y="32" width="160" height="14" rx="4" fill="#1E2E42" stroke="#2B4A88"/>
+        <rect x="370" y="54" width="160" height="14" rx="4" fill="#1E2E42" stroke="#2B4A88"/>
+        <rect x="370" y="76" width="160" height="14" rx="4" fill="#1E2E42" stroke="#2B4A88"/>
+        <text x="450" y="43" text-anchor="middle" font-size="9.5" fill="#9FBFFF" font-family="inherit">검증</text>
+        <text x="450" y="65" text-anchor="middle" font-size="9.5" fill="#9FBFFF" font-family="inherit">검증</text>
+        <text x="450" y="87" text-anchor="middle" font-size="9.5" fill="#9FBFFF" font-family="inherit">검증</text>
+        <line x1="530" y1="20" x2="530" y2="100" stroke="#3A3A42" stroke-width="1.2"/>
+        <text x="540" y="66" font-size="11.5" font-weight="800" fill="#E0876A" font-family="inherit">총 소요 = 가장 느린 1단계 + 가장 느린 2단계</text>
+
+        <!-- 아래: pipeline -->
+        <line x1="14" y1="118" x2="1110" y2="118" stroke="#2C2C32" stroke-width="1.2" stroke-dasharray="6 6"/>
+        <text x="14" y="142" font-size="12.5" font-weight="800" fill="#FF8A57" font-family="inherit">pipeline · 대기선이 없다</text>
+        <g font-family="ui-monospace,monospace" font-size="10" fill="#77777F">
+          <text x="14" y="166">A</text><text x="14" y="188">B</text><text x="14" y="210">C</text>
+        </g>
+        <rect x="34" y="156" width="150" height="14" rx="4" fill="#3A2A24" stroke="#5C3D31"/>
+        <rect x="34" y="178" width="330" height="14" rx="4" fill="#3A2A24" stroke="#5C3D31"/>
+        <rect x="34" y="200" width="210" height="14" rx="4" fill="#3A2A24" stroke="#5C3D31"/>
+        <text x="109" y="167" text-anchor="middle" font-size="9.5" fill="#E0AF98" font-family="inherit">찾기</text>
+        <text x="199" y="189" text-anchor="middle" font-size="9.5" fill="#E0AF98" font-family="inherit">찾기</text>
+        <text x="139" y="211" text-anchor="middle" font-size="9.5" fill="#E0AF98" font-family="inherit">찾기</text>
+        <!-- 즉시 다음 스테이지 -->
+        <rect x="188" y="156" width="160" height="14" rx="4" fill="#1E2E42" stroke="#2B4A88"/>
+        <rect x="368" y="178" width="160" height="14" rx="4" fill="#1E2E42" stroke="#2B4A88"/>
+        <rect x="248" y="200" width="160" height="14" rx="4" fill="#1E2E42" stroke="#2B4A88"/>
+        <text x="268" y="167" text-anchor="middle" font-size="9.5" fill="#9FBFFF" font-family="inherit">검증</text>
+        <text x="448" y="189" text-anchor="middle" font-size="9.5" fill="#9FBFFF" font-family="inherit">검증</text>
+        <text x="328" y="211" text-anchor="middle" font-size="9.5" fill="#9FBFFF" font-family="inherit">검증</text>
+        <line x1="530" y1="146" x2="530" y2="222" stroke="#3A3A42" stroke-width="1.2"/>
+        <text x="540" y="182" font-size="11.5" font-weight="800" fill="#FF8A57" font-family="inherit">총 소요 = 가장 느린 하나의 체인</text>
+        <text x="540" y="202" font-size="10.5" fill="#8A8A93" font-family="inherit">A는 이미 검증이 끝났고 B는 아직 찾는 중이다 — 그래도 된다</text>
+      </svg>
+    </div>
+    <div class="note"><b style="color:#FF8A57">기본값은 pipeline이다.</b> 파인더 다섯이 도는데 가장 느린 쪽이 가장 빠른 쪽의 세 배라면, 배리어는 빠른 파인더들의 <b>3분의 2를 그냥 버린다</b>.</div>
+  </div>
+  <div class="takeaway">단계가 나뉜 것과 <b>동기화가 필요한 것</b>은 다르다</div>
+</section>
+
+<!-- ═══════════ 11 · 배리어 판별법 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">11</div>
+  <div class="body">
+    <div class="eyebrow">판별법 · WHEN TO BARRIER</div>
+    <h1>배리어는 <em>딱 세 경우</em>에만 정당하다</h1>
+    <div class="cols">
+      <div>
+        <div style="font-size:13.5px;font-weight:800;color:#3ACB82;letter-spacing:.06em;margin-bottom:10px">정당하다 · N단계가 N-1단계 전체를 봐야 할 때</div>
+        <div class="yn y"><div class="m">✓</div><div class="tx"><b>전체 결과를 합쳐 중복을 제거</b>해야 그다음 비싼 작업이 헛돌지 않을 때</div></div>
+        <div class="yn y"><div class="m">✓</div><div class="tx"><b>총합이 0이면 조기 종료</b>할 때 — "버그가 0건이면 검증 단계를 통째로 건너뛴다"</div></div>
+        <div class="yn y"><div class="m">✓</div><div class="tx">다음 단계 프롬프트가 <b>"다른 발견들"을 비교 대상으로 참조</b>할 때</div></div>
+        <div class="pp" style="margin-top:14px">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">정당한 배리어</span><span class="tag2">OK</span></div>
+          <pre class="tight"><span class="k">const</span> all = <span class="k">await</span> <span class="f">parallel</span>(DIMS.<span class="f">map</span>(d =&gt; () =&gt;
+  <span class="f">agent</span>(d.prompt, { schema: FINDINGS })))
+<span class="c">// ↓ 전부 모여야만 가능한 일</span>
+<span class="k">const</span> deduped = <span class="f">dedupe</span>(all.<span class="f">filter</span>(Boolean).<span class="f">flatMap</span>(r =&gt; r.findings))</pre>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:13.5px;font-weight:800;color:#E14B3C;letter-spacing:.06em;margin-bottom:10px">정당하지 않다 · 흔한 착각 셋</div>
+        <div class="yn n"><div class="m">✕</div><div class="tx"><b>"먼저 flatten/map/filter 해야 해서"</b> — 그건 파이프라인 스테이지 <b>안에서</b> 하면 된다</div></div>
+        <div class="yn n"><div class="m">✕</div><div class="tx"><b>"개념적으로 분리된 단계라서"</b> — 파이프라인이 모델링하는 게 바로 그거다. <b>단계가 나뉜 것 ≠ 동기화</b></div></div>
+        <div class="yn n"><div class="m">✕</div><div class="tx"><b>"코드가 더 깔끔해서"</b> — 배리어의 지연은 실재하는 비용이다</div></div>
+        <div class="pp" style="margin-top:14px">
+          <div class="ph"><svg class="ic" style="color:#3ACB82"><use href="#spark"/></svg><span class="t">변환은 스테이지 안으로</span><span class="tag2">FIX</span></div>
+          <pre class="tight"><span class="f">pipeline</span>(items,
+  stageA,
+  r =&gt; <span class="f">transform</span>([r]).<span class="f">flat</span>(),   <span class="c">// 배리어 없이 처리</span>
+  stageB)</pre>
+        </div>
+      </div>
+    </div>
+    <div class="note">헷갈리면 <b style="color:#FF8A57">파이프라인</b>이다. 배리어는 "정말 전부 한자리에 있어야 하는가"라는 질문에 <b>구체적인 이유</b>를 댈 수 있을 때만 쓴다.</div>
+  </div>
+</section>
+
+<!-- ═══════════ 12 · 스멜 테스트 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">12</div>
+  <div class="body">
+    <div class="eyebrow">냄새 맡기 · SMELL TEST</div>
+    <h1>이 세 줄이 보이면 <em>거의 항상 잘못됐다</em></h1>
+    <div class="cols">
+      <div class="pp">
+        <div class="ph"><svg class="ic" style="color:#E14B3C"><use href="#spark"/></svg><span class="t">냄새나는 코드</span><span class="tag2">SMELL</span></div>
+        <pre><span class="k">const</span> a = <span class="k">await</span> <span class="f">parallel</span>(…)
+<span class="k">const</span> b = <span class="f">transform</span>(a)   <span class="c">// flatten · map · filter</span>
+                        <span class="c">// 아이템 간 의존이 전혀 없다</span>
+<span class="k">const</span> c = <span class="k">await</span> <span class="f">parallel</span>(b.<span class="f">map</span>(…))</pre>
+      </div>
+      <div class="pp">
+        <div class="ph"><svg class="ic" style="color:#3ACB82"><use href="#spark"/></svg><span class="t">고친 코드</span><span class="tag2">FIXED</span></div>
+        <pre><span class="k">const</span> c = <span class="k">await</span> <span class="f">pipeline</span>(items,
+  item =&gt; <span class="f">agent</span>(…),      <span class="c">// 1단계</span>
+  r    =&gt; <span class="f">transform</span>(r),   <span class="c">// 변환도 스테이지다</span>
+  t    =&gt; <span class="f">agent</span>(…))       <span class="c">// 2단계</span></pre>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:18px">
+      <div class="gcard" style="padding:16px 19px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">🔁</span><h3>스테이지 인자를 쓰자</h3></div>
+        <p style="font-size:13.1px">모든 스테이지 콜백은 <code>(prevResult, originalItem, index)</code>를 받는다. 뒷 단계에서 <b style="color:#D9D9DE">원본 아이템으로 라벨</b>을 만들 수 있으니, 1단계 반환값에 컨텍스트를 끼워 넣지 않아도 된다.</p>
+      </div>
+      <div class="gcard" style="padding:16px 19px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">💥</span><h3>실패는 격리된다</h3></div>
+        <p style="font-size:13.1px">스테이지가 예외를 던지면 <b>그 아이템만 null</b>이 되고 남은 스테이지를 건너뛴다. 다른 아이템은 계속 흐른다.</p>
+      </div>
+      <div class="gcard" style="padding:16px 19px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">🕳️</span><h3>parallel도 안 터진다</h3></div>
+        <p style="font-size:13.1px">thunk가 던져도 그 자리에 <code>null</code>이 들어갈 뿐 <b>호출 자체는 reject하지 않는다</b>. 그래서 결과를 쓰기 전 <code>.filter(Boolean)</code>은 선택이 아니다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">중간의 <code style="font-family:var(--mono);font-size:15px">transform</code>은 <b>배리어를 정당화하지 못한다</b></div>
+</section>
+
+<!-- ═══════════ 13 · 정석 패턴 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">13</div>
+  <div class="body">
+    <div class="eyebrow">정석 · CANONICAL</div>
+    <h1>외워 둘 만한 <em>기본형 하나</em></h1>
+    <div class="cols-64">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">차원별 리뷰 → 발견마다 즉시 검증</span><span class="tag2">TEMPLATE</span></div>
+        <pre class="tight"><span class="k">export const</span> meta = {
+  name: <span class="s">'review-changes'</span>,
+  description: <span class="s">'변경 파일을 차원별로 리뷰하고 검증한다'</span>,
+  phases: [{ title: <span class="s">'Review'</span> }, { title: <span class="s">'Verify'</span> }],
+}
+
+<span class="k">const</span> DIMENSIONS = [
+  { key: <span class="s">'bugs'</span>, prompt: <span class="s">'정확성 결함을 찾아라 …'</span> },
+  { key: <span class="s">'perf'</span>, prompt: <span class="s">'성능 병목을 찾아라 …'</span> },
+]
+
+<span class="k">const</span> results = <span class="k">await</span> <span class="f">pipeline</span>(
+  DIMENSIONS,
+  d =&gt; <span class="f">agent</span>(d.prompt, {
+    label: <span class="s">`review:${d.key}`</span>, phase: <span class="s">'Review'</span>,
+    schema: FINDINGS_SCHEMA }),
+  review =&gt; <span class="f">parallel</span>(review.findings.<span class="f">map</span>(f =&gt; () =&gt;
+    <span class="f">agent</span>(<span class="s">`적대적으로 검증하라: ${f.title}`</span>, {
+      label: <span class="s">`verify:${f.file}`</span>, phase: <span class="s">'Verify'</span>,
+      schema: VERDICT_SCHEMA })
+      .<span class="f">then</span>(v =&gt; ({ ...f, verdict: v }))))
+)
+
+<span class="k">const</span> confirmed = results.<span class="f">flat</span>()
+  .<span class="f">filter</span>(Boolean).<span class="f">filter</span>(f =&gt; f.verdict?.isReal)
+<span class="k">return</span> { confirmed }</pre>
+      </div>
+      <div>
+        <div class="step" style="margin-bottom:9px"><div class="n">01</div><div class="t">차원을 나눈다</div></div>
+        <div class="step" style="margin-bottom:9px"><div class="n">02</div><div class="t">차원마다 파인더 하나</div></div>
+        <div class="step" style="margin-bottom:9px"><div class="n">03</div><div class="t">발견마다 검증자 하나</div></div>
+        <div class="step" style="margin-bottom:9px"><div class="n">04</div><div class="t">살아남은 것만 반환</div></div>
+        <div class="note" style="margin-top:14px"><code>bugs</code>의 발견들이 검증받는 동안 <code>perf</code>는 아직 리뷰 중이어도 된다. <b>버려지는 벽시계가 없다.</b></div>
+        <div class="note"><b style="color:#FF8A57">주목</b> — 안쪽에서 <code>parallel</code>을 쓰지만 이건 <b>한 차원의 발견들끼리</b>만 묶는 것이라 차원 간 대기선이 아니다.</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">차원 → 발견 → 검증, <b>세 칸이면 충분하다</b></div>
+</section>
+
+<!-- ═══════════ 14 · 루프 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">14</div>
+  <div class="body">
+    <div class="eyebrow">제어 흐름 · LOOPS</div>
+    <h1>몇 번 돌릴지도 <em>코드가 정한다</em></h1>
+    <div class="cols">
+      <div>
+        <div class="pp" style="margin-bottom:13px">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">목표 개수까지 · loop-until-count</span><span class="tag2">A</span></div>
+          <pre class="tight"><span class="k">const</span> bugs = []
+<span class="k">while</span> (bugs.length &lt; <span class="n">10</span>) {
+  <span class="k">const</span> r = <span class="k">await</span> <span class="f">agent</span>(<span class="s">'버그를 찾아라'</span>,
+                        { schema: BUGS_SCHEMA })
+  bugs.<span class="f">push</span>(...r.bugs)
+  <span class="f">log</span>(<span class="s">`${bugs.length}/10 발견`</span>)
+}</pre>
+        </div>
+        <div class="pp">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">예산이 남는 동안 · loop-until-budget</span><span class="tag2">B</span></div>
+          <pre class="tight"><span class="k">while</span> (budget.total &amp;&amp;
+       budget.<span class="f">remaining</span>() &gt; <span class="n">50_000</span>) {
+  <span class="k">const</span> r = <span class="k">await</span> <span class="f">agent</span>(<span class="s">'버그를 찾아라'</span>,
+                        { schema: BUGS_SCHEMA })
+  bugs.<span class="f">push</span>(...r.bugs)
+  <span class="f">log</span>(<span class="s">`남은 예산 ${budget.remaining()/1000}k`</span>)
+}</pre>
+        </div>
+      </div>
+      <div>
+        <div class="gcard warn" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🛑</span><h3><code>budget.total</code> 가드를 빼먹지 말 것</h3></div>
+          <p style="font-size:13.3px">예산 지시가 없으면 <code>remaining()</code>은 <b style="color:#D9D9DE">Infinity</b>다. 가드 없이 while을 돌리면 <b>1000개 에이전트 상한까지 그대로 달린다</b>.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🏜️</span><h3>개수보다 <b>마름</b>이 낫다</h3></div>
+          <p style="font-size:13.3px">크기를 모르는 탐색에서 <code>count &lt; N</code>은 <b>꼬리를 놓친다</b>. "K번 연속으로 새 발견이 없을 때까지" 쪽이 실제 전수에 가깝다.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">📊</span><h3>정적 스케일링도 가능하다</h3></div>
+          <p style="font-size:13.3px">루프 대신 함대 크기를 예산에서 계산해도 된다 —<br><code>budget.total ? Math.floor(budget.total / 100_000) : 5</code></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">"적당히 여러 번"이 아니라 <b>종료 조건</b>을 쓴다</div>
+</section>
+
+<!-- ═══════════ 15 · budget ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">15</div>
+  <div class="body">
+    <div class="eyebrow">예산 · BUDGET</div>
+    <h1>예산은 권고가 아니라 <em>천장이다</em></h1>
+    <div class="lead">사용자가 <b>"+500k"</b> 같은 지시를 주면 그 값이 <code>budget.total</code>로 들어온다. 지시가 없으면 <code>null</code>이다.</div>
+    <div class="grid3" style="margin-bottom:16px">
+      <div class="gcard">
+        <div class="gh"><span class="em">🎯</span><h3><code>budget.total</code></h3></div>
+        <p>이번 턴의 목표치. 지시가 없었다면 <b>null</b>이다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">📈</span><h3><code>budget.spent()</code></h3></div>
+        <p>이번 턴에 쓴 출력 토큰. <b style="color:#D9D9DE">메인 루프와 모든 워크플로우를 합친 값</b>이다 — 풀은 공유된다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">⏳</span><h3><code>budget.remaining()</code></h3></div>
+        <p><code>max(0, total - spent())</code>. 목표가 없으면 <b>Infinity</b>를 돌려준다.</p>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="gcard warn" style="padding:16px 20px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">🚧</span><h3>도달하면 그냥 던진다</h3></div>
+        <p style="font-size:13.3px"><code>spent()</code>가 <code>total</code>에 닿는 순간 이후의 <code>agent()</code> 호출은 <b style="color:#D9D9DE">예외를 발생시킨다</b>. 부드럽게 줄어드는 게 아니라 <b>하드 실링</b>이다.</p>
+      </div>
+      <div class="gcard" style="padding:16px 20px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">🧩</span><h3>풀은 하나다</h3></div>
+        <p style="font-size:13.3px">중첩 워크플로우가 쓴 토큰도 <b>같은 <code>spent()</code>에 잡힌다</b>. 자식 워크플로우는 동시성 상한·에이전트 카운터·중단 신호까지 부모와 공유한다.</p>
+      </div>
+    </div>
+    <div class="note">예산에 맞춰 깊이를 조절하는 게 요령이다 — <b>"버그를 좀 찾아줘"</b>는 파인더 서넛에 단일 검증, <b>"철저히 감사해줘"</b>는 파인더 풀을 키우고 3~5표 적대적 검증에 종합 단계까지 붙인다.</div>
+  </div>
+  <div class="takeaway">예산이 곧 <b>탐색의 깊이</b>다</div>
+</section>
+
+<!-- ═══════════ 16 · 품질 ① ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">16</div>
+  <div class="body">
+    <div class="eyebrow">품질 패턴 ① · ADVERSARIAL</div>
+    <h1>검증자에게 <em>반증하라고</em> 시켜야 한다</h1>
+    <div class="cols">
+      <div>
+        <div class="vs" style="grid-template-columns:1fr;gap:11px">
+          <div class="vsbox was" style="padding:18px 22px">
+            <div class="k">"이거 맞아?"라고 물으면</div>
+            <div class="t" style="font-size:19px">그럴듯하면<br>맞다고 한다</div>
+            <div class="d" style="font-size:13.5px">모델은 주어진 주장에 <b style="color:#F0B49B">동조하는 쪽으로 기운다</b>. 확인 질문은 확인만 받아 온다.</div>
+          </div>
+          <div class="vsbox now" style="padding:18px 22px;background:#0E1A13;border-color:#1F4A33">
+            <div class="k" style="color:#3ACB82">"이걸 깨뜨려 봐"라고 시키면</div>
+            <div class="t" style="font-size:19px">근거를 실제로<br>찾으러 간다</div>
+            <div class="d" style="font-size:13.5px">불확실하면 <b style="color:#9FE3BE">기본값을 '반박됨'으로</b> 두게 한다. 살아남은 것만 진짜다.</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="pp">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">독립 회의론자 셋 · 과반 반박이면 폐기</span><span class="tag2">PATTERN</span></div>
+          <pre class="tight"><span class="k">const</span> votes = <span class="k">await</span> <span class="f">parallel</span>(
+  Array.<span class="f">from</span>({ length: <span class="n">3</span> }, () =&gt; () =&gt;
+    <span class="f">agent</span>(<span class="s">`이 주장을 반증해 보라: ${claim}.</span>
+<span class="s">           확신이 없으면 refuted=true 를 기본으로.`</span>,
+          { schema: VERDICT })))
+
+<span class="k">const</span> survives =
+  votes.<span class="f">filter</span>(Boolean)
+       .<span class="f">filter</span>(v =&gt; !v.refuted).length &gt;= <span class="n">2</span></pre>
+        </div>
+        <div class="note" style="margin-top:15px">발견 하나당 검증자 N명을 <b>독립적으로</b> 띄우는 것이 핵심이다. 한 에이전트에게 "세 관점으로 봐"라고 하면 <b style="color:#C9C9CF">같은 앵커에 세 번 갇힌다</b>.</div>
+        <div class="note"><b style="color:#FF8A57">비용 감각</b> — 검증은 발견 수에 비례해 늘어난다. 발견이 30건이고 3표씩이면 검증에만 에이전트 90개다. 예산과 상한을 먼저 계산하자.</div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">확인이 아니라 <b>반증을 시켜라</b></div>
+</section>
+
+<!-- ═══════════ 17 · 품질 ② ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">17</div>
+  <div class="body">
+    <div class="eyebrow">품질 패턴 ② · DIVERSITY</div>
+    <h1>같은 검증자 셋보다 <em>다른 렌즈 셋</em>이 낫다</h1>
+    <div class="pat">
+      <div class="pi">🔭</div>
+      <div>
+        <h3>관점 다양형 검증 <span>Perspective-diverse verify</span></h3>
+        <p>하나의 발견이 <b>여러 방식으로 틀릴 수 있을 때</b>, 똑같은 반박자 N명 대신 검증자마다 <b style="color:#D9D9DE">다른 렌즈</b>를 준다 — 정확성 · 보안 · 성능 · 재현 여부. 중복으로는 못 잡는 실패 유형을 다양성이 잡는다.</p>
+      </div>
+    </div>
+    <div class="pat">
+      <div class="pi">⚖️</div>
+      <div>
+        <h3>심판단 <span>Judge panel</span></h3>
+        <p><b>서로 다른 각도로 N개의 독립 시안</b>을 만들고 — MVP 우선, 리스크 우선, 사용자 우선 — 병렬 심판으로 점수를 매긴 뒤 <b style="color:#D9D9DE">승자를 뼈대로 삼고 차점자의 좋은 아이디어를 이식</b>한다. 해답 공간이 넓을 때는 한 시안을 반복 개선하는 것보다 낫다.</p>
+      </div>
+    </div>
+    <div class="pp" style="margin-top:5px">
+      <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">렌즈별 검증 · 발견마다 세 관점을 동시에</span><span class="tag2">PATTERN</span></div>
+      <pre class="tight"><span class="k">const</span> judged = <span class="k">await</span> <span class="f">parallel</span>(fresh.<span class="f">map</span>(b =&gt; () =&gt;
+  <span class="f">parallel</span>([<span class="s">'correctness'</span>, <span class="s">'security'</span>, <span class="s">'repro'</span>].<span class="f">map</span>(lens =&gt; () =&gt;
+    <span class="f">agent</span>(<span class="s">`"${b.desc}" 를 ${lens} 렌즈로 판정하라 — 진짜인가?`</span>,
+          { phase: <span class="s">'Verify'</span>, schema: VERDICT })))
+    .<span class="f">then</span>(vs =&gt; ({ b, real: vs.<span class="f">filter</span>(Boolean).<span class="f">filter</span>(v =&gt; v.real).length &gt;= <span class="n">2</span> }))))</pre>
+    </div>
+    <div class="note">렌즈 이름을 프롬프트에 <b>박아 넣는 것</b>이 전부다. 같은 질문을 세 번 던지는 비용으로 <b style="color:#C9C9CF">세 종류의 실패 모드</b>를 검사하게 된다.</div>
+  </div>
+  <div class="takeaway">중복이 아니라 <b>차이</b>가 검증을 만든다</div>
+</section>
+
+<!-- ═══════════ 18 · 품질 ③ ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">18</div>
+  <div class="body">
+    <div class="eyebrow">품질 패턴 ③ · COVERAGE</div>
+    <h1>빠뜨린 것을 <em>스스로 찾게</em> 만든다</h1>
+    <div class="pat">
+      <div class="pi">🏜️</div>
+      <div>
+        <h3>마를 때까지 루프 <span>Loop-until-dry</span></h3>
+        <p>버그·이슈·엣지 케이스처럼 <b>총량을 모르는 탐색</b>에서는, <b style="color:#D9D9DE">K번 연속으로 새 발견이 0건</b>일 때까지 파인더를 계속 띄운다. 단순 개수 세기는 항상 꼬리를 놓친다.</p>
+      </div>
+    </div>
+    <div class="pat">
+      <div class="pi">🧭</div>
+      <div>
+        <h3>멀티모달 스윕 <span>Multi-modal sweep</span></h3>
+        <p>병렬 에이전트마다 <b>검색 방식 자체를 다르게</b> 준다 — 컨테이너 기준 · 내용 기준 · 엔티티 기준 · 시간 기준. 각자 다른 에이전트가 무엇을 찾았는지 모른 채 훑는다. <b style="color:#D9D9DE">한 각도로는 절대 다 못 찾을 때</b> 쓴다.</p>
+      </div>
+    </div>
+    <div class="pat">
+      <div class="pi">🔍</div>
+      <div>
+        <h3>완결성 비평가 <span>Completeness critic</span></h3>
+        <p>마지막에 에이전트 하나를 붙여 <b>"무엇이 빠졌는가 — 안 돌린 방식, 검증 안 된 주장, 안 읽은 출처는?"</b>을 묻는다. 그 답이 <b style="color:#D9D9DE">다음 라운드의 작업 목록</b>이 된다.</p>
+      </div>
+    </div>
+    <div class="pat" style="margin-bottom:0">
+      <div class="pi">📢</div>
+      <div>
+        <h3>말 없는 잘라내기 금지 <span>No silent caps</span></h3>
+        <p>상위 N개만 보거나, 재시도를 안 하거나, 표본만 뽑았다면 <b style="color:#FF8A57">무엇을 버렸는지 <code>log()</code>로 남긴다</b>. 조용한 절삭은 "전부 훑었다"로 읽힌다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">덮은 범위를 <b>정직하게 말하는 것</b>도 설계다</div>
+</section>
+
+<!-- ═══════════ 19 · 조합 예제 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">19</div>
+  <div class="body">
+    <div class="eyebrow">종합 · COMPOSITION</div>
+    <h1>패턴 넷을 <em>한 스크립트에</em> 겹쳐 본다</h1>
+    <div class="cols-64">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">전수 리뷰 · 찾기 → 중복 제거 → 다중 렌즈 → 마를 때까지</span><span class="tag2">FULL</span></div>
+        <pre class="tight"><span class="k">const</span> seen = <span class="k">new</span> Set(), confirmed = []
+<span class="k">let</span> dry = <span class="n">0</span>
+
+<span class="k">while</span> (dry &lt; <span class="n">2</span>) {                         <span class="c">// ④ 마를 때까지</span>
+  <span class="k">const</span> found = (<span class="k">await</span> <span class="f">parallel</span>(FINDERS.<span class="f">map</span>(f =&gt; () =&gt;
+    <span class="f">agent</span>(f.prompt, { phase: <span class="s">'Find'</span>, schema: BUGS }))))
+    .<span class="f">filter</span>(Boolean).<span class="f">flatMap</span>(r =&gt; r.bugs)
+
+  <span class="k">const</span> fresh = found.<span class="f">filter</span>(b =&gt; !seen.<span class="f">has</span>(<span class="f">key</span>(b)))  <span class="c">// ② 중복 제거</span>
+  <span class="k">if</span> (!fresh.length) { dry++; <span class="k">continue</span> }
+  dry = <span class="n">0</span>; fresh.<span class="f">forEach</span>(b =&gt; seen.<span class="f">add</span>(<span class="f">key</span>(b)))
+
+  <span class="k">const</span> judged = <span class="k">await</span> <span class="f">parallel</span>(fresh.<span class="f">map</span>(b =&gt; () =&gt;  <span class="c">// ③ 다중 렌즈</span>
+    <span class="f">parallel</span>([<span class="s">'correctness'</span>,<span class="s">'security'</span>,<span class="s">'repro'</span>].<span class="f">map</span>(lens =&gt; () =&gt;
+      <span class="f">agent</span>(<span class="s">`"${b.desc}" 를 ${lens} 렌즈로 판정하라`</span>,
+            { phase: <span class="s">'Verify'</span>, schema: VERDICT })))
+      .<span class="f">then</span>(vs =&gt; ({ b,
+        real: vs.<span class="f">filter</span>(Boolean).<span class="f">filter</span>(v =&gt; v.real).length &gt;= <span class="n">2</span> }))))
+
+  confirmed.<span class="f">push</span>(...judged.<span class="f">filter</span>(v =&gt; v.real).<span class="f">map</span>(v =&gt; v.b))
+}
+<span class="k">return</span> confirmed</pre>
+      </div>
+      <div>
+        <div class="gcard warn" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🔑</span><h3>중복 제거는 <code>seen</code> 기준이다</h3></div>
+          <p style="font-size:13.2px"><code>confirmed</code> 기준으로 걸러 내면 <b style="color:#D9D9DE">심판이 기각한 발견이 매 라운드 되살아나</b> 루프가 영원히 끝나지 않는다. 본 것 전부를 <code>seen</code>에 넣어야 수렴한다.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🧮</span><h3>중복 제거는 에이전트가 아니라 <b>코드</b>다</h3></div>
+          <p style="font-size:13.2px">키가 같은지 비교하는 일에 모델을 쓰지 않는다. <b>결정론으로 되는 일은 결정론으로</b>.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🚪</span><h3>여기의 배리어는 정당하다</h3></div>
+          <p style="font-size:13.2px">라운드 안의 <code>parallel</code>은 <b style="color:#D9D9DE">이번 라운드 결과 전체를 <code>seen</code>과 대조</b>해야 하므로 진짜로 모여야 한다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 20 · 단일 페이즈 5종 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">20</div>
+  <div class="body">
+    <div class="eyebrow">레시피 · SINGLE-PHASE</div>
+    <h1>한 판에 하나씩 — <em>다섯 가지 기본 대본</em></h1>
+    <table class="tbl tight">
+      <colgroup><col style="width:15%"><col style="width:45%"><col style="width:40%"></colgroup>
+      <thead><tr><th>대본</th><th>흐름</th><th>결과물</th></tr></thead>
+      <tbody>
+        <tr><td><b>이해</b><div class="mut" style="font-size:12px">Understand</div></td><td class="mut">관련 서브시스템마다 병렬 리더 → 구조화 종합</td><td class="mut">코드베이스 구조 맵</td></tr>
+        <tr><td><b>설계</b><div class="mut" style="font-size:12px">Design</div></td><td class="mut">독립 시안 N개 → 심판단 채점 → 승자 기반 종합</td><td class="mut">점수가 붙은 설계 결정</td></tr>
+        <tr><td><b>리뷰</b><div class="mut" style="font-size:12px">Review</div></td><td class="mut">차원 나누기 → 발견 → 적대적 검증</td><td class="mut">확정된 결함 목록</td></tr>
+        <tr><td><b>리서치</b><div class="mut" style="font-size:12px">Research</div></td><td class="mut">멀티모달 스윕 → 심층 정독 → 종합</td><td class="mut">출처가 붙은 조사 보고</td></tr>
+        <tr><td><b>이전</b><div class="mut" style="font-size:12px">Migrate</div></td><td class="mut">변경 지점 발굴 → 각각 변환(워크트리 격리) → 검증</td><td class="mut">적용된 변경 + 검증 결과</td></tr>
+      </tbody>
+    </table>
+    <div class="note" style="margin-top:18px"><b style="color:#FF8A57">큰 일은 이걸 연달아 돌린다.</b> 한 번에 전부 자동화하지 말고 <b>이해 → 설계 → 구현 → 리뷰</b>를 각각 한 판씩 실행하고, <b style="color:#C9C9CF">매 결과를 읽은 다음</b> 그다음 판을 정한다. 사람이 루프 안에 남아 있어야 방향이 안 샌다.</div>
+    <div class="grid3" style="margin-top:16px">
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">1️⃣</span><h3>한 판 = 한 결정</h3></div>
+        <p style="font-size:13px">각 워크플로우는 <b>잘 정의된 팬아웃 하나</b>다. 여러 결정을 한 스크립트에 몰아넣지 않는다.</p>
+      </div>
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">👀</span><h3>결과를 읽고 다음을 정한다</h3></div>
+        <p style="font-size:13px">중간 산출물을 확인한 뒤 다음 판을 짠다. 그게 이 도구를 안전하게 쓰는 방식이다.</p>
+      </div>
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">🧬</span><h3>변형은 자유다</h3></div>
+        <p style="font-size:13px">토너먼트, 자가 복구 루프, 단계적 에스컬레이션 — <b>일에 맞는 구조를 새로 지어도 된다</b>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 21 · 하이브리드 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">21</div>
+  <div class="body">
+    <div class="eyebrow">실전 요령 · HYBRID</div>
+    <h1>먼저 <em>정찰</em>하고, 그다음 <em>팬아웃</em>한다</h1>
+    <div class="lead">작업 전체의 모양을 미리 알 필요는 없다. <b>오케스트레이션 단계 직전까지만</b> 알면 된다.</div>
+    <div class="flowwrap" style="padding:16px 14px">
+      <svg viewBox="0 0 1124 176" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6E6E76"/></marker></defs>
+        <rect x="10" y="46" width="248" height="84" rx="13" fill="#17171A" stroke="#3A3A42" stroke-width="1.5"/>
+        <text x="134" y="76" text-anchor="middle" font-size="13" font-weight="800" fill="#EDEDEF" font-family="inherit">① 인라인 정찰</text>
+        <text x="134" y="97" text-anchor="middle" font-size="10.5" fill="#8A8A93" font-family="inherit">파일 목록화 · 대상 탐색 · diff 범위 확인</text>
+        <text x="134" y="115" text-anchor="middle" font-size="10.5" fill="#8A8A93" font-family="inherit">— 내가 직접, 값싸게 —</text>
+        <line x1="262" y1="88" x2="298" y2="88" stroke="#55555E" stroke-width="1.6" marker-end="url(#ha)"/>
+        <rect x="304" y="46" width="248" height="84" rx="13" fill="rgba(255,91,31,.10)" stroke="#FF5B1F" stroke-width="1.5"/>
+        <text x="428" y="76" text-anchor="middle" font-size="13" font-weight="800" fill="#FF8A57" font-family="inherit">② 작업 목록 확정</text>
+        <text x="428" y="97" text-anchor="middle" font-size="10.5" fill="#9A9AA3" font-family="inherit">이제 몇 개를 어떻게 나눌지 안다</text>
+        <text x="428" y="115" text-anchor="middle" font-size="10.5" fill="#9A9AA3" font-family="inherit">args 로 스크립트에 넘긴다</text>
+        <line x1="556" y1="88" x2="592" y2="88" stroke="#55555E" stroke-width="1.6" marker-end="url(#ha)"/>
+        <rect x="598" y="26" width="300" height="124" rx="15" fill="rgba(155,123,196,.06)" stroke="#9B7BC4" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="618" y="48" font-size="12" font-weight="800" fill="#B79BE0" font-family="inherit">③ 워크플로우로 파이프라인</text>
+        <g font-family="inherit" font-size="11" fill="#C9C9CF">
+          <rect x="616" y="60" width="264" height="26" rx="7" fill="#1A1A1E" stroke="#2E2E34"/><text x="748" y="77" text-anchor="middle">아이템마다 변환 → 검증</text>
+          <rect x="616" y="92" width="264" height="26" rx="7" fill="#1A1A1E" stroke="#2E2E34"/><text x="748" y="109" text-anchor="middle">실패한 아이템만 null 로 빠진다</text>
+        </g>
+        <text x="748" y="140" text-anchor="middle" font-size="10.5" fill="#77777F" font-family="inherit">스크립트가 흐름을 고정한다</text>
+        <line x1="902" y1="88" x2="938" y2="88" stroke="#55555E" stroke-width="1.6" marker-end="url(#ha)"/>
+        <rect x="944" y="46" width="170" height="84" rx="13" fill="rgba(58,203,130,.10)" stroke="#3ACB82" stroke-width="1.5"/>
+        <text x="1029" y="82" text-anchor="middle" font-size="13" font-weight="800" fill="#3ACB82" font-family="inherit">④ 내가 읽고</text>
+        <text x="1029" y="102" text-anchor="middle" font-size="10.5" fill="#9A9AA3" font-family="inherit">다음 판을 정한다</text>
+      </svg>
+    </div>
+    <div class="grid2" style="margin-top:18px">
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">📦</span><h3><code>args</code>는 진짜 JSON으로</h3></div>
+        <p style="font-size:13.1px"><code>args: ["a.ts","b.ts"]</code>처럼 <b>실제 배열·객체</b>를 넘긴다. 문자열로 인코딩해 넘기면 스크립트에는 <b style="color:#FF8A57">문자열 하나</b>가 도착해 <code>args.map</code>이 터진다.</p>
+      </div>
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">♻️</span><h3>이름 붙은 대본을 매개변수화한다</h3></div>
+        <p style="font-size:13.1px">리서치 질문·대상 경로·설정 객체를 <code>args</code>로 넘기면 <b style="color:#D9D9DE">같은 스크립트를 여러 대상에 재사용</b>할 수 있다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 22 · 실행 환경 제약 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">22</div>
+  <div class="body">
+    <div class="eyebrow">제약 ① · RUNTIME</div>
+    <h1>스크립트는 <em>보통의 JS가 아니다</em></h1>
+    <div class="cols">
+      <div>
+        <div class="yn n"><div class="m">✕</div><div class="tx"><b>타입스크립트가 아니다</b> — 타입 표기(<code>: string[]</code>)·인터페이스·제네릭은 파싱 자체가 실패한다</div></div>
+        <div class="yn n"><div class="m">✕</div><div class="tx"><b><code>Date.now()</code> · <code>Math.random()</code> · 인자 없는 <code>new Date()</code></b>는 예외를 던진다 — 재개(resume) 기능을 깨뜨리기 때문이다</div></div>
+        <div class="yn n"><div class="m">✕</div><div class="tx"><b>파일시스템·Node API 접근이 없다</b> — 파일을 읽고 쓰는 건 에이전트의 일이다</div></div>
+        <div class="yn y"><div class="m">✓</div><div class="tx"><b>표준 내장 객체는 쓸 수 있다</b> — <code>JSON</code>·<code>Math</code>·<code>Array</code>·<code>Set</code>·<code>Map</code></div></div>
+        <div class="yn y" style="margin-bottom:0"><div class="m">✓</div><div class="tx"><b>본문이 이미 async 컨텍스트</b>다 — 감싸는 함수 없이 <code>await</code>를 바로 쓴다</div></div>
+      </div>
+      <div>
+        <div class="gcard warn" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">⏰</span><h3>시간이 필요하면 밖에서 넣는다</h3></div>
+          <p style="font-size:13.2px">타임스탬프는 <code>args</code>로 <b>넘겨 주거나</b>, 워크플로우가 끝난 뒤 결과에 <b style="color:#D9D9DE">찍는다</b>.</p>
+        </div>
+        <div class="gcard warn" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🎲</span><h3>무작위성이 필요하면 인덱스로</h3></div>
+          <p style="font-size:13.2px">난수 대신 <b>인덱스에 따라 프롬프트와 라벨을 다르게</b> 만든다 — 어차피 원하는 건 다양성이지 난수가 아니다.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🔌</span><h3>MCP 도구는 쓸 수 있다</h3></div>
+          <p style="font-size:13.2px">워크플로우 에이전트는 세션에 연결된 <b>모든 MCP 도구</b>에 접근한다. 다만 대화형 인증이 필요한 서버는 <b style="color:#FF8A57">헤드리스·크론 실행에서 빠질 수 있다</b>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">결정론을 지키려고 <b>일부러 좁혀 놓은 환경</b>이다</div>
+</section>
+
+<!-- ═══════════ 23 · 상한선 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">23</div>
+  <div class="body">
+    <div class="eyebrow">제약 ② · LIMITS</div>
+    <h1>숫자로 외워 둘 <em>상한선 넷</em></h1>
+    <div class="lim">
+      <div class="num">min(16, N-2)</div>
+      <div class="lt">동시 실행 수</div>
+      <div class="ld">워크플로우 하나당 동시에 도는 <code>agent()</code>는 <b>16개와 (CPU 코어 − 2) 중 작은 쪽</b>으로 묶인다. 초과분은 <b style="color:#D9D9DE">큐에 들어가 자리가 나면 실행</b>된다 — 버려지지 않는다.</div>
+    </div>
+    <div class="lim">
+      <div class="num">1,000</div>
+      <div class="lt">총 에이전트 수</div>
+      <div class="ld">워크플로우 생애 전체의 에이전트 총량 상한. <b>실제 워크플로우가 닿을 일 없는 값</b>으로, 폭주 루프를 막는 안전장치다.</div>
+    </div>
+    <div class="lim">
+      <div class="num">4,096</div>
+      <div class="lt">한 호출의 아이템 수</div>
+      <div class="ld"><code>parallel</code>·<code>pipeline</code> 한 번에 넘길 수 있는 최대 아이템. 넘기면 <b style="color:#FF8A57">조용히 잘리는 게 아니라 명시적 오류</b>가 난다.</div>
+    </div>
+    <div class="lim" style="margin-bottom:0">
+      <div class="num">1 단계</div>
+      <div class="lt">중첩 깊이</div>
+      <div class="ld"><code>workflow()</code>로 다른 워크플로우를 부를 수 있지만 <b>자식 안에서 또 부르면 예외</b>다. 자식은 부모의 동시성·카운터·예산·중단 신호를 공유한다.</div>
+    </div>
+    <div class="note" style="margin-top:16px">이 세션에는 <b>"중간(medium)"</b> 크기 가이드라인이 걸려 있다 — <b style="color:#C9C9CF">워크플로우당 에이전트 15개 미만</b>. 강제 한도가 아니라 지침이며, 사용자가 <code>/config</code>의 <b>Dynamic workflow size</b>에서 올리거나 없앨 수 있다.</div>
+  </div>
+  <div class="takeaway">상한은 <b>안전장치</b>이지 목표치가 아니다</div>
+</section>
+
+<!-- ═══════════ 24 · worktree ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">24</div>
+  <div class="body">
+    <div class="eyebrow">격리 · WORKTREE</div>
+    <h1>파일을 <em>동시에 고칠 때</em>만 격리한다</h1>
+    <div class="cols">
+      <div>
+        <div class="mode m3" style="margin-bottom:12px">
+          <div class="mh"><h3>격리 없이 병렬 수정</h3><span class="tg">CONFLICT</span></div>
+          <p>에이전트 다섯이 <b>같은 작업 트리</b>에서 동시에 파일을 쓴다. 서로의 편집을 덮어쓰고, 어떤 변경이 누구 것인지 추적이 끊긴다.</p>
+        </div>
+        <div class="mode m1">
+          <div class="mh"><h3><code>isolation: 'worktree'</code></h3><span class="tg">SAFE</span></div>
+          <p>에이전트마다 <b>새 git 워크트리</b>가 붙는다. 각자 저장소의 독립 사본에서 작업하므로 충돌이 원천적으로 없다. <b style="color:#D9D9DE">변경이 없으면 자동으로 정리</b>된다.</p>
+        </div>
+      </div>
+      <div>
+        <div class="gcard warn" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">💰</span><h3>공짜가 아니다</h3></div>
+          <p style="font-size:13.3px">에이전트마다 <b>200~500ms의 셋업 시간과 디스크 공간</b>이 든다. 20개를 띄우면 그 비용이 그대로 스무 배다.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">✅</span><h3>이럴 때만 켠다</h3></div>
+          <p style="font-size:13.3px">대규모 이전 · 파일 단위 리팩터링 · 여러 시안을 <b>실제로 구현해 비교</b>할 때. 한마디로 <b style="color:#D9D9DE">병렬로 쓰기(write)를 할 때</b>다.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🚫</span><h3>읽기만 하면 필요 없다</h3></div>
+          <p style="font-size:13.3px">리뷰·리서치·탐색처럼 <b>파일을 읽기만 하는 팬아웃</b>에 워크트리를 붙이는 건 순수한 낭비다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">쓰기가 겹칠 때만 <b>사본을 준다</b></div>
+</section>
+
+<!-- ═══════════ 25 · resume ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">25</div>
+  <div class="body">
+    <div class="eyebrow">재개 · RESUME</div>
+    <h1>고쳐서 다시 돌려도 <em>앞부분은 공짜다</em></h1>
+    <div class="cols-64">
+      <div>
+        <div class="flowwrap" style="padding:14px 12px;margin-bottom:14px">
+          <svg viewBox="0 0 700 120" width="100%" xmlns="http://www.w3.org/2000/svg">
+            <text x="10" y="18" font-size="11.5" font-weight="800" fill="#8A8A93" font-family="inherit">첫 실행</text>
+            <g font-family="inherit" font-size="10.5">
+              <rect x="10" y="26" width="120" height="26" rx="7" fill="#1A1A1E" stroke="#2E2E34"/><text x="70" y="43" text-anchor="middle" fill="#C9C9CF">agent ①</text>
+              <rect x="138" y="26" width="120" height="26" rx="7" fill="#1A1A1E" stroke="#2E2E34"/><text x="198" y="43" text-anchor="middle" fill="#C9C9CF">agent ②</text>
+              <rect x="266" y="26" width="120" height="26" rx="7" fill="#1A1A1E" stroke="#2E2E34"/><text x="326" y="43" text-anchor="middle" fill="#C9C9CF">agent ③</text>
+              <rect x="394" y="26" width="120" height="26" rx="7" fill="#1A1A1E" stroke="#2E2E34"/><text x="454" y="43" text-anchor="middle" fill="#C9C9CF">agent ④</text>
+            </g>
+            <text x="10" y="80" font-size="11.5" font-weight="800" fill="#FF8A57" font-family="inherit">③을 고치고 재개</text>
+            <g font-family="inherit" font-size="10.5">
+              <rect x="10" y="88" width="120" height="26" rx="7" fill="rgba(58,203,130,.12)" stroke="#3ACB82"/><text x="70" y="105" text-anchor="middle" fill="#3ACB82">캐시 · 즉시</text>
+              <rect x="138" y="88" width="120" height="26" rx="7" fill="rgba(58,203,130,.12)" stroke="#3ACB82"/><text x="198" y="105" text-anchor="middle" fill="#3ACB82">캐시 · 즉시</text>
+              <rect x="266" y="88" width="120" height="26" rx="7" fill="rgba(255,91,31,.12)" stroke="#FF5B1F"/><text x="326" y="105" text-anchor="middle" fill="#FF8A57">여기부터 재실행</text>
+              <rect x="394" y="88" width="120" height="26" rx="7" fill="rgba(255,91,31,.12)" stroke="#FF5B1F"/><text x="454" y="105" text-anchor="middle" fill="#FF8A57">재실행</text>
+            </g>
+            <text x="530" y="72" font-size="11" fill="#8A8A93" font-family="inherit">변경되지 않은</text>
+            <text x="530" y="90" font-size="11" fill="#8A8A93" font-family="inherit">가장 긴 앞부분이</text>
+            <text x="530" y="108" font-size="11" font-weight="800" fill="#3ACB82" font-family="inherit">캐시에서 돌아온다</text>
+          </svg>
+        </div>
+        <div class="pp">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">재개 호출</span><span class="tag2">RESUME</span></div>
+          <pre class="tight">Workflow({ scriptPath: <span class="s">'…/wf.js'</span>,
+           resumeFromRunId: <span class="s">'wf_a1b2c3…'</span> })</pre>
+        </div>
+      </div>
+      <div>
+        <div class="keyrow"><div class="kb hot">runId</div><div>
+          <h3>모든 실행이 돌려준다</h3>
+          <p>일시정지·중단·스크립트 수정 후 이 ID로 이어 붙인다. <b>같은 세션 안에서만</b> 유효하다.</p>
+        </div></div>
+        <div class="keyrow"><div class="kb">100% 히트</div><div>
+          <h3>같은 스크립트 + 같은 args</h3>
+          <p>하나도 안 고쳤다면 전부 캐시에서 즉시 돌아온다.</p>
+        </div></div>
+        <div class="keyrow"><div class="kb">TaskStop</div><div>
+          <h3>먼저 이전 실행을 멈춘다</h3>
+          <p>돌고 있는 채로 재개하지 않는다.</p>
+        </div></div>
+        <div class="keyrow" style="margin-bottom:0"><div class="kb">journal</div><div>
+          <h3>결과가 이상하면 <b>기록부터 읽는다</b></h3>
+          <p><code>&lt;transcriptDir&gt;/journal.jsonl</code>에 <b style="color:#D9D9DE">각 에이전트의 실제 반환값</b>이 남는다. 캐시된 값이 비어 있지 않다고 <b>가정하지 말자</b>.</p>
+        </div></div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">디버깅은 <b>추측이 아니라 저널</b>로 한다</div>
+</section>
+
+<!-- ═══════════ 26 · ultracode ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">26</div>
+  <div class="body">
+    <div class="eyebrow">모드 · ULTRACODE</div>
+    <h1>상시 동의 모드 — <em>기본이 워크플로우</em>가 된다</h1>
+    <div class="cols">
+      <div>
+        <div class="mode m2" style="margin-bottom:12px">
+          <div class="mh"><h3>켜져 있을 때</h3><span class="tg">ON</span></div>
+          <p>모든 실질적 작업에 <b>기본으로 워크플로우를 짜서 실행한다</b>. 목표는 가능한 한 가장 철저하고 정확한 결과이며, <b style="color:#D9D9DE">토큰 비용은 제약이 아니다</b>. 다단계 작업이라면 이해 → 설계 → 구현 → 리뷰를 <b>단계마다 한 판씩</b> 이어 돌린다.</p>
+        </div>
+        <div class="mode m1">
+          <div class="mh"><h3>그래도 혼자 하는 경우</h3><span class="tg">SOLO</span></div>
+          <p>대화만 오가는 턴, 그리고 <b>기계적인 사소한 편집</b>. 이미 검증이 끝난 일도 마찬가지다.</p>
+        </div>
+      </div>
+      <div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🔀</span><h3>단발 키워드로도 켠다</h3></div>
+          <p style="font-size:13.3px">프롬프트에 <code>ultracode</code>를 한 번 넣으면 <b>그 턴에만</b> 열린다. 세션 전체로 켜면 상시 동의가 된다.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🎚️</span><h3>규모는 요청에 맞춘다</h3></div>
+          <p style="font-size:13.3px"><b>"버그 있나 봐줘"</b>는 파인더 서넛에 단일 검증. <b>"철저히 감사해줘"</b>는 파인더 풀을 키우고 3~5표 적대적 검증에 종합 단계까지. <b style="color:#D9D9DE">감사·리뷰·리서치는 철저히, 빠른 확인은 짧게</b>.</p>
+        </div>
+        <div class="gcard warn" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">↩️</span><h3>꺼지면 원래대로</h3></div>
+          <p style="font-size:13.3px">모드가 꺼졌다는 신호가 오면 <b>다시 명시적 옵트인 규칙</b>으로 돌아간다. 관성으로 계속 함대를 띄우지 않는다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">동의의 범위가 <b>기본 동작을 바꾼다</b></div>
+</section>
+
+<!-- ═══════════ 27 · 안티패턴 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">27</div>
+  <div class="body">
+    <div class="eyebrow">점검표 · ANTI-PATTERNS</div>
+    <h1>돌리기 전에 <em>여덟 줄만 확인하자</em></h1>
+    <div class="cols">
+      <div>
+        <div class="yn n"><div class="m">1</div><div class="tx"><b>변환 하나 때문에 배리어를 넣지 않았나</b> — 스테이지 안으로 옮긴다</div></div>
+        <div class="yn n"><div class="m">2</div><div class="tx"><b><code>.filter(Boolean)</code>을 빼먹지 않았나</b> — 스킵·오류는 <code>null</code>로 온다</div></div>
+        <div class="yn n"><div class="m">3</div><div class="tx"><b><code>pipeline</code> 안에서 전역 <code>phase()</code>에 기대지 않았나</b> — <code>opts.phase</code>로 명시한다</div></div>
+        <div class="yn n" style="margin-bottom:0"><div class="m">4</div><div class="tx"><b>중복 제거를 확정 목록 기준으로 하지 않았나</b> — 루프가 수렴하지 않는다</div></div>
+      </div>
+      <div>
+        <div class="yn n"><div class="m">5</div><div class="tx"><b><code>budget.total</code> 가드 없이 while을 돌리지 않았나</b> — Infinity로 폭주한다</div></div>
+        <div class="yn n"><div class="m">6</div><div class="tx"><b>필요 없는데 <code>isolation: 'worktree'</code>를 켜지 않았나</b> — 읽기 전용이면 낭비다</div></div>
+        <div class="yn n"><div class="m">7</div><div class="tx"><b>잘라낸 범위를 <code>log()</code>로 알리지 않았나</b> — 조용한 절삭은 거짓말이 된다</div></div>
+        <div class="yn n" style="margin-bottom:0"><div class="m">8</div><div class="tx"><b>확신도 없이 <code>model</code>을 덮어쓰지 않았나</b> — 모르면 생략이 정답이다</div></div>
+      </div>
+    </div>
+    <div class="sum" style="margin-top:18px">
+      <div class="n">RULE</div>
+      <div class="k"><em>기본값</em></div>
+      <div class="d"><code>pipeline</code>으로 짜고 · <code>schema</code>로 받고 · <code>model</code>은 생략하고 · 배리어는 <b style="color:#D9D9DE">이유를 댈 수 있을 때만</b> 넣는다</div>
+    </div>
+  </div>
+  <div class="takeaway">틀린 워크플로우는 <b>조용히 비싸다</b></div>
+</section>
+
+<!-- ═══════════ 28 · 실습 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="pagenum">28</div>
+  <div class="body">
+    <div class="eyebrow">실습 · MISSION</div>
+    <h1>지금 <em>40분</em>이면 다 해본다</h1>
+    <div class="cards">
+      <div class="card"><div class="chip b">1</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>가장 작은 워크플로우 돌리기</h3><span class="time">10분</span></div>
+        <p>내 저장소에 대고 <b style="color:#D9D9DE">"ultracode, 이 저장소 구조를 병렬로 파악해줘"</b>라고 요청한다. <code>/workflows</code>로 진행 상황을 보고, 끝나면 <b style="color:#D9D9DE">결과에 실린 스크립트 경로</b>를 열어 어떤 대본이 생성됐는지 읽어 본다.</p>
+      </div></div>
+      <div class="card"><div class="chip g">2</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>배리어를 넣었다 빼 보기</h3><span class="time">15분</span></div>
+        <p>같은 리뷰 작업을 <b style="color:#D9D9DE"><code>parallel</code> 두 번</b>으로 짠 판과 <b style="color:#D9D9DE"><code>pipeline</code> 한 번</b>으로 짠 판, 두 가지로 돌린다. 끝나는 시각을 비교하면 대기선의 비용이 숫자로 보인다.</p>
+      </div></div>
+      <div class="card"><div class="chip o">3</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>고쳐서 재개하기</h3><span class="time">15분</span></div>
+        <p>저장된 스크립트에서 <b style="color:#D9D9DE">마지막 스테이지만</b> 고치고 <code>resumeFromRunId</code>로 다시 돌린다. 앞부분이 즉시 돌아오는지 확인하고, <code>journal.jsonl</code>을 열어 <b style="color:#D9D9DE">각 에이전트가 실제로 무엇을 반환했는지</b> 본다.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="takeaway">한 번 돌려 봐야 <b>언제 쓸지가 보인다</b></div>
+</section>
+
+<!-- ═══════════ 29 · OUTRO ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#DynamicWorkflows</div>
+  </header>
+  <div class="outro">
+    <div class="eb">WRAP-UP</div>
+    <h1>모델에게 맡길 것과<br><em>코드로 못 박을 것</em>을 가른다</h1>
+    <div class="d">판단은 모델이, 흐름은 스크립트가 — 그 경계를 어디에 긋느냐가 워크플로우 설계의 전부다<br><b style="color:#D8D8DC">재현되지 않는 자동화는 자동화가 아니다</b></div>
+    <div class="avatar"><svg style="width:52px;height:52px;color:var(--orange)"><use href="#spark"/></svg></div>
+    <div class="cta">Q&amp;A · 질문 환영</div>
+    <div class="promo">
+      <div class="th">SERIES<br>LINK</div>
+      <div>
+        <div class="pt">함께 보면 좋은 강의 · 에이전트 팀 편 · 서브에이전트 편</div>
+        <div class="pd">워크플로우가 부리는 그 에이전트들을 각각 깊게 다룹니다 <span class="hot">계속</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /stage -->
+
+<div class="hud">
+  <span class="cnt" id="cnt">01 / 29</span>
+  <button id="prev" aria-label="이전 슬라이드">‹</button>
+  <button id="next" aria-label="다음 슬라이드">›</button>
+  <button id="fs" aria-label="전체화면 (F)" style="display:grid;place-items:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="display:block"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+<div class="hint"><b>← →</b> 슬라이드 이동 &nbsp;·&nbsp; <b>F</b> 전체화면 &nbsp;·&nbsp; <b>Ctrl+P</b> PDF 저장</div>
+<div class="progress" id="prog"></div>
+</div><!-- /deck -->
+
+<script>
+(function(){
+  var stage=document.getElementById('stage');
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var cnt=document.getElementById('cnt');
+  var prog=document.getElementById('prog');
+  var cur=0, N=slides.length;
+
+  function pad(n){return String(n).padStart(2,'0');}
+  function go(n){
+    n=Math.max(0,Math.min(N-1,n));
+    if(n===cur && slides[n].classList.contains('active')){update();return;}
+    slides[cur].classList.remove('active');
+    cur=n;
+    slides[cur].classList.add('active');
+    update();
+  }
+  function update(){
+    cnt.textContent=pad(cur+1)+' / '+pad(N);
+    prog.style.width=(N>1?(cur/(N-1))*100:100)+'%';
+    try{if(history.replaceState){history.replaceState(null,'','#'+(cur+1));}}catch(e){/* 샌드박스(미리보기)에서는 URL 갱신 불가 — 무시 */}
+  }
+  function next(){go(cur+1);}
+  function prev(){go(cur-1);}
+
+  function fit(){
+    var s=Math.min(window.innerWidth/1280, window.innerHeight/720);
+    stage.style.transform='translate(-50%,-50%) scale('+s+')';
+  }
+  window.addEventListener('resize',fit);
+  fit();
+
+  // ── 안전장치: 폰트 대체·번역 등으로 내용이 넘치면 본문만 살짝 축소 ──
+  function fitBodies(){
+    for(var i=0;i<N;i++){
+      var b=slides[i].querySelector('.body');
+      if(!b) continue;
+      b.style.transform='none';
+      var kids=b.children;
+      if(!kids.length) continue;
+      var last=kids[kids.length-1];
+      var need=last.offsetTop+last.offsetHeight-b.offsetTop;
+      var avail=b.clientHeight;
+      if(need>avail+1){
+        var k=Math.max(.72, avail/need);
+        b.style.transformOrigin='top center';
+        b.style.transform='scale('+k+')';
+      }
+    }
+  }
+  window.addEventListener('resize',fitBodies);
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fitBodies);}
+  setTimeout(fitBodies,60);
+  fitBodies();
+
+  document.getElementById('next').addEventListener('click',next);
+  document.getElementById('prev').addEventListener('click',prev);
+
+  var toastEl=null,toastT=null;
+  function toast(msg){
+    if(!toastEl){toastEl=document.createElement('div');toastEl.className='toast';document.body.appendChild(toastEl);}
+    toastEl.textContent=msg;
+    toastEl.classList.add('on');
+    clearTimeout(toastT);
+    toastT=setTimeout(function(){toastEl.classList.remove('on');},3000);
+  }
+  function fsBlocked(){toast('이 미리보기 창에서는 전체화면이 차단돼 있어요 — 파일을 다운로드해 브라우저에서 열면 사용할 수 있습니다');}
+  function toggleFs(){
+    var d=document,el=d.documentElement;
+    var inFs=d.fullscreenElement||d.webkitFullscreenElement;
+    try{
+      if(inFs){(d.exitFullscreen||d.webkitExitFullscreen).call(d);return;}
+      var req=el.requestFullscreen||el.webkitRequestFullscreen;
+      if(!req){fsBlocked();return;}
+      var p=req.call(el);
+      if(p&&p.catch){p.catch(fsBlocked);}
+    }catch(err){fsBlocked();}
+  }
+  document.getElementById('fs').addEventListener('click',toggleFs);
+
+  window.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'||e.key===' '){e.preventDefault();next();}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();prev();}
+    else if(e.key==='Home'){e.preventDefault();go(0);}
+    else if(e.key==='End'){e.preventDefault();go(N-1);}
+    else if(e.key==='f'||e.key==='F'){toggleFs();}
+  });
+
+  var tx=null;
+  window.addEventListener('touchstart',function(e){tx=e.changedTouches[0].clientX;},{passive:true});
+  window.addEventListener('touchend',function(e){
+    if(tx===null)return;
+    var dx=e.changedTouches[0].clientX-tx;
+    if(dx<-50)next(); else if(dx>50)prev();
+    tx=null;
+  },{passive:true});
+
+  var h=parseInt((location.hash||'').replace('#',''),10);
+  if(!isNaN(h)&&h>=1&&h<=N){slides[0].classList.remove('active');cur=h-1;slides[cur].classList.add('active');}
+  update();
+})();
+</script>
+</body>
+</html>
