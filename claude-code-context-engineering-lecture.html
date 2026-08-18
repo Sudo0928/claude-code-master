@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대규모 프로젝트 컨텍스트 엔지니어링 완벽 가이드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --bg:#0B0B0D;
+  --panel:#161619;
+  --panel2:#1D1D22;
+  --line:#2A2A2F;
+  --line-soft:#1E1E23;
+  --orange:#FF5B1F;
+  --orange-hi:#FF8A57;
+  --orange-soft:rgba(255,91,31,.12);
+  --orange-bd:rgba(255,91,31,.38);
+  --txt:#F3F2EF;
+  --muted:#A2A2AB;
+  --dim:#77777F;
+  --cream:#F6F1E7;
+  --blue:#3D6FE0;
+  --green:#22A96B;
+  --purple:#8B5CF6;
+  --amber:#E8930C;
+  --red:#E14B3C;
+  --mono:'JetBrains Mono','SF Mono','Cascadia Code','D2Coding',Consolas,ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:#050506;
+  font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+  color:var(--txt);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+.deck{position:fixed;inset:0}
+.stage{
+  position:absolute;left:50%;top:50%;
+  width:1280px;height:720px;
+  transform:translate(-50%,-50%) scale(1);
+  transform-origin:center center;
+  background:var(--bg);
+  border-radius:6px;
+  overflow:hidden;
+  box-shadow:0 30px 90px rgba(0,0,0,.6);
+}
+
+/* ---------- slide frame ---------- */
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  opacity:0;visibility:hidden;
+  transform:translateY(16px);
+  transition:opacity .38s ease,transform .38s ease,visibility .38s;
+  pointer-events:none;
+}
+.slide.active{opacity:1;visibility:visible;transform:translateY(0);pointer-events:auto}
+
+.bar{
+  height:56px;flex:none;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 44px;
+  border-bottom:1px solid var(--line-soft);
+  background:rgba(11,11,13,.9);
+  z-index:5;
+}
+.brand{display:flex;align-items:center;gap:11px;font-size:14.5px}
+.brand .logo{width:19px;height:19px;flex:none;display:block}
+.brand b{font-weight:800;letter-spacing:-.2px}
+.brand i{font-style:normal;color:#3A3A40}
+.brand span{color:var(--muted);font-weight:500}
+.tag{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+
+.pagenum{
+  position:absolute;top:74px;right:48px;
+  font-size:14px;font-weight:700;color:#5C5C64;letter-spacing:.12em;
+  font-family:var(--mono);
+}
+.body{flex:1;min-height:0;padding:30px 64px 0;display:flex;flex-direction:column}
+.eyebrow{
+  color:var(--orange);font-size:15px;font-weight:800;letter-spacing:.14em;
+  margin-bottom:14px;
+}
+h1{font-size:41px;line-height:1.24;font-weight:800;letter-spacing:-.6px;margin-bottom:24px}
+h1 em{font-style:normal;color:var(--orange)}
+.lead{font-size:16.5px;color:var(--muted);line-height:1.62;margin:-8px 0 22px;max-width:1000px}
+.lead b{color:#D8D8DC;font-weight:700}
+.lead code{font-family:var(--mono);font-size:14.5px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+.takeaway{
+  flex:none;margin:auto 64px 32px;
+  background:var(--orange-soft);
+  border:1px solid var(--orange-bd);
+  border-radius:10px;
+  padding:13px 20px;text-align:center;
+  font-size:17px;font-weight:800;color:var(--orange);
+  letter-spacing:-.2px;
+}
+.takeaway b{color:var(--orange-hi)}
+
+/* ---------- numbered cards ---------- */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:13px;padding:16px 22px;
+  display:flex;gap:17px;align-items:flex-start;
+}
+.chip{
+  width:31px;height:31px;border-radius:8px;flex:none;margin-top:2px;
+  display:grid;place-items:center;
+  font-weight:800;font-size:15px;color:#fff;font-family:var(--mono);
+}
+.chip.b{background:var(--blue)} .chip.g{background:var(--green)}
+.chip.p{background:var(--purple)} .chip.a{background:var(--amber)}
+.chip.r{background:var(--red)} .chip.o{background:var(--orange)}
+.card h3{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.card h3 code{font-family:var(--mono);font-size:16px;color:var(--orange-hi);font-weight:700}
+.card p{font-size:14.5px;color:var(--muted);margin-top:5px;line-height:1.55}
+.card p code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+/* ---------- before/after vs ---------- */
+.vs{display:grid;grid-template-columns:1fr 52px 1fr;align-items:stretch}
+.vsbox{border-radius:15px;padding:24px 28px}
+.vsbox.was{background:#211311;border:1px solid #3C221B}
+.vsbox.now{background:#0E1727;border:1px solid #2B4A88}
+.vsbox .k{font-size:13.5px;font-weight:800;letter-spacing:.06em;margin-bottom:10px}
+.vsbox.was .k{color:#E0876A}
+.vsbox.now .k{color:#6FA1FF}
+.vsbox .t{font-size:22px;font-weight:800;letter-spacing:-.4px;line-height:1.35}
+.vsbox .d{font-size:14.5px;color:var(--muted);margin-top:9px;line-height:1.55}
+.vsarr{display:grid;place-items:center;color:#E4E4E8;font-size:26px}
+
+/* ---------- table ---------- */
+.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;table-layout:fixed}
+.tbl th{
+  text-align:left;color:#87878F;font-weight:700;font-size:12.5px;letter-spacing:.08em;
+  padding:11px 18px;border-bottom:1px solid var(--line);background:#19191D;
+}
+.tbl td{padding:11.5px 18px;border-bottom:1px solid var(--line-soft);vertical-align:top;line-height:1.5}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .mono{font-family:var(--mono);font-size:12.5px;color:#FFC29E}
+.tbl .mut{color:var(--muted)}
+.tbl.tight th,.tbl.tight td{padding:9px 16px}
+.tbl code{font-family:var(--mono);font-size:12.3px;color:#FFC29E;background:#232327;padding:1px 5px;border-radius:5px}
+.tbl b{color:#E4E4E8}
+
+/* ---------- grid cards ---------- */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:20px 22px}
+.gcard .gh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.gcard .gh .em{font-size:21px}
+.gcard h3{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.gcard h3 code{font-family:var(--mono);font-size:15px;color:var(--orange-hi)}
+.gcard .meta{font-family:var(--mono);font-size:11.5px;color:#8B8B94;background:#101013;border:1px solid #232329;border-radius:7px;padding:6px 10px;margin:9px 0 10px;line-height:1.6}
+.gcard p{font-size:13.8px;color:var(--muted);line-height:1.58}
+.gcard p b{color:#D9D9DE}
+.gcard p code{font-family:var(--mono);font-size:12.4px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+.gcard ul{list-style:none;margin-top:8px}
+.gcard ul li{font-size:13.5px;color:var(--muted);line-height:1.55;padding-left:15px;position:relative;margin-top:5px}
+.gcard ul li::before{content:"·";color:var(--orange);position:absolute;left:2px;font-weight:800}
+.gcard.warn{border-color:#4A2A24;background:#191211}
+.gcard.warn h3{color:#FF8A57}
+.gcard.good{border-color:#1F4A33;background:#0E1A13}
+.gcard.good h3{color:#3ACB82}
+
+.note{position:relative;padding-left:22px;font-size:13.5px;color:#8D8D96;line-height:1.55;margin-top:15px}
+.note::before{content:"＊";position:absolute;left:0;top:0;color:var(--orange);font-weight:800}
+.note code{font-family:var(--mono);font-size:12.5px;color:#FFC29E;background:#1E1E23;padding:1px 6px;border-radius:5px}
+.note b{color:#C9C9CF}
+
+/* ---------- cover ---------- */
+.cover-top{flex:1;min-height:0;background:var(--cream);position:relative;display:grid;place-items:center}
+.cover-bot{flex:none;background:#070708;padding:32px 64px 40px;border-top:1px solid #000}
+.badge{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:13px;font-weight:800;letter-spacing:.03em;
+  padding:6px 13px;border-radius:7px;margin-bottom:16px;
+}
+.cover-bot h1{font-size:52px;line-height:1.18;letter-spacing:-1.2px;margin-bottom:14px}
+.cover-bot .sub{font-size:17.5px;color:var(--muted)}
+.cover-bot .sub b{color:#EDEDEF}
+
+.flowwrap{background:#101013;border:1px solid var(--line);border-radius:15px;padding:10px 8px}
+
+/* ---------- layout helpers ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.cols-64{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
+.cols-46{display:grid;grid-template-columns:1fr 1.35fr;gap:20px;align-items:start}
+.grid3>*,.grid2>*,.cols>*,.cols-64>*,.cols-46>*{min-width:0}
+
+.time{margin-left:auto;flex:none;font-family:var(--mono);font-size:12px;font-weight:700;color:#8F8F98;background:#111114;border:1px solid #26262C;padding:5px 11px;border-radius:20px}
+
+/* ---------- outro ---------- */
+.outro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:16px}
+.outro .eb{color:var(--orange);font-size:14.5px;font-weight:800;letter-spacing:.22em;margin-bottom:16px}
+.outro h1{font-size:40px;line-height:1.3;margin-bottom:14px}
+.outro .d{font-size:15.5px;color:var(--muted);line-height:1.65;margin-bottom:26px}
+.avatar{
+  width:118px;height:118px;border-radius:50%;
+  background:#141417;border:3px solid var(--orange);
+  display:grid;place-items:center;font-size:56px;margin-bottom:22px;
+  box-shadow:0 0 0 7px rgba(255,91,31,.09);
+}
+.cta{
+  display:inline-block;background:var(--orange);color:#fff;
+  font-size:16.5px;font-weight:800;padding:13px 42px;border-radius:32px;
+  letter-spacing:-.2px;margin-bottom:26px;
+}
+.promo{
+  display:flex;align-items:center;gap:16px;text-align:left;
+  background:#121215;border:1px solid var(--line);border-radius:14px;
+  padding:14px 22px;
+}
+.promo .th{
+  width:92px;height:56px;border-radius:9px;flex:none;
+  background:linear-gradient(135deg,#2B1B4E,#0E0E12 60%);
+  border:1px solid #3A2E63;
+  display:grid;place-items:center;color:#C9B8FF;
+  font-family:var(--mono);font-size:9.5px;font-weight:800;text-align:center;line-height:1.5;
+}
+.promo .pt{font-size:16px;font-weight:800}
+.promo .pd{font-size:13px;color:var(--muted);margin-top:3px}
+.promo .hot{color:var(--orange);font-weight:800}
+
+/* ---------- controls ---------- */
+.hud{position:fixed;right:22px;bottom:16px;display:flex;align-items:center;gap:10px;z-index:50;user-select:none}
+.hud .cnt{font-family:var(--mono);font-size:12.5px;color:#6E6E76;letter-spacing:.08em;margin-right:2px}
+.hud button{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid #303036;background:#121215;color:#C9C9CF;
+  font-size:16px;cursor:pointer;transition:.18s;
+}
+.hud button:hover{border-color:var(--orange);color:var(--orange)}
+.hint{position:fixed;left:22px;bottom:21px;font-size:12px;color:#55555C;z-index:50;user-select:none}
+.toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%) translateY(8px);background:#1A1A1E;border:1px solid #3A3A40;color:#EDEDEF;font-size:13px;padding:10px 18px;border-radius:10px;z-index:60;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:80%;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.hint b{color:#7C7C84;font-weight:700}
+.progress{position:fixed;left:0;bottom:0;height:3px;background:var(--orange);width:0%;z-index:60;transition:width .3s ease}
+
+/* ---------- print ---------- */
+@media print{
+  body{overflow:visible;background:#0B0B0D}
+  .hud,.hint,.progress,.toast{display:none!important}
+  .deck{position:static}
+  .stage{position:static;transform:none!important;width:1280px;height:auto;box-shadow:none;border-radius:0;overflow:visible;left:auto;top:auto;margin:0 auto}
+  .slide{position:relative;opacity:1!important;visibility:visible!important;transform:none!important;width:1280px;height:720px;page-break-after:always;break-inside:avoid}
+}
+@page{size:1280px 720px;margin:0}
+
+.sum{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:17px 24px;display:flex;align-items:center;gap:22px}
+.sum .n{font-family:var(--mono);font-size:15px;font-weight:800;color:#6C6C74;flex:none}
+.sum .k{font-size:21px;font-weight:800;letter-spacing:-.3px;width:96px;flex:none}
+.sum .k em{font-style:normal;color:var(--orange)}
+.sum .d{font-size:15px;color:var(--muted);line-height:1.5}
+.sum .d code{font-family:var(--mono);font-size:13px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+/* ---------- code panel ---------- */
+.pp{background:#0D0D10;border:1px solid #26262C;border-radius:13px;overflow:hidden}
+.pp .ph{display:flex;align-items:center;gap:9px;padding:9px 16px;background:#141418;border-bottom:1px solid #212127}
+.pp .ph .ic{width:16px;height:16px;color:var(--orange);flex:none}
+.pp .ph .t{font-size:12.5px;font-weight:800;color:#C0C0C8;letter-spacing:-.1px}
+.pp .ph .tag2{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:#6E6E76;letter-spacing:.06em}
+.pp pre{margin:0;padding:15px 20px;font-family:var(--mono);font-size:12.8px;line-height:1.82;color:#D9D9DF;white-space:pre-wrap;word-break:keep-all}
+.pp pre.tight{font-size:12px;line-height:1.72;padding:13px 18px}
+.pp pre .c{color:#67676F}.pp pre .k{color:#FF9264}.pp pre .s{color:#8CD49A}.pp pre .hl{color:#FFD9C4}
+.pp pre .f{color:#7FB2FF}.pp pre .n{color:#C9A6F5}
+.pp pre b{color:#FFD9C4;font-weight:700}
+
+.step{display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 20px}
+.step .n{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--orange);flex:none}
+.step .t{font-size:15.5px;font-weight:700}
+.step .d{font-size:13.5px;color:var(--muted);margin-left:auto;text-align:right}
+
+.keyrow{display:flex;gap:14px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 18px;margin-bottom:9px}
+.keyrow .kb{font-family:var(--mono);font-size:12.5px;font-weight:800;color:#FFC29E;background:#1E1E23;border:1px solid #33333A;border-radius:7px;padding:6px 11px;flex:none;min-width:112px;text-align:center}
+.keyrow .kb.hot{color:#fff;background:var(--orange);border-color:var(--orange)}
+.keyrow h3{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.keyrow p{font-size:13.2px;color:var(--muted);margin-top:3px;line-height:1.5}
+.keyrow p b{color:#D9D9DE}
+.keyrow p code{font-family:var(--mono);font-size:12.3px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+.mode{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px 20px;position:relative;overflow:hidden}
+.mode::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+.mode.m1::after{background:#3ACB82}.mode.m2::after{background:var(--orange)}.mode.m3::after{background:#E14B3C}
+.mode .mh{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.mode .mh h3{font-size:17px;font-weight:800;letter-spacing:-.3px}
+.mode .mh .tg{margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;color:#0B0B0D;border-radius:5px;padding:3px 8px}
+.mode.m1 .mh .tg{background:#3ACB82}.mode.m2 .mh .tg{background:var(--orange);color:#fff}.mode.m3 .mh .tg{background:#E14B3C;color:#fff}
+.mode p{font-size:13.4px;color:var(--muted);line-height:1.56}
+.mode p b{color:#D9D9DE}
+.mode p code{font-family:var(--mono);font-size:12.4px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+
+.yn{display:flex;gap:12px;align-items:flex-start;border-radius:11px;padding:11px 17px;margin-bottom:8px;border:1px solid}
+.yn.y{background:#0E1A13;border-color:#1F4A33}
+.yn.n{background:#1A1011;border-color:#4A2226}
+.yn .m{font-size:15px;font-weight:800;flex:none;width:17px;text-align:center;line-height:1.4;font-family:var(--mono)}
+.yn.y .m{color:#3ACB82} .yn.n .m{color:#E14B3C}
+.yn .tx{font-size:13.3px;color:var(--muted);line-height:1.55}
+.yn .tx b{color:#E4E4E8;font-weight:700}
+.yn .tx code{font-family:var(--mono);font-size:12.2px;color:#FFC29E;background:#1E1E23;padding:1px 6px;border-radius:5px}
+
+.tree{font-family:var(--mono);font-size:12.8px;line-height:1.9;color:#C0C0C8;background:#0D0D10;border:1px solid #26262C;border-radius:12px;padding:15px 20px;white-space:pre;overflow:hidden}
+.tree b{color:#FF9264;font-weight:700}
+.tree i{font-style:normal;color:#67676F}
+.tree u{text-decoration:none;color:#8CD49A}
+.tree s{text-decoration:none;color:#55555C}
+
+/* ---------- context engineering deck 전용 ---------- */
+.lyr{display:flex;gap:15px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 19px;margin-bottom:9px;position:relative;overflow:hidden}
+.lyr::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+.lyr.L1::after{background:#8B5CF6}.lyr.L2::after{background:#3D6FE0}
+.lyr.L3::after{background:#22A96B}.lyr.L4::after{background:#E8930C}
+.lyr .ln{font-size:14.5px;font-weight:800;flex:none;width:118px;letter-spacing:-.3px}
+.lyr .lp{font-family:var(--mono);font-size:12px;color:#FFC29E;flex:1;line-height:1.7;min-width:0}
+.lyr .lu{font-size:12.8px;color:var(--muted);flex:none;width:212px;line-height:1.45}
+.lyr .lu b{color:#D9D9DE}
+
+.grade{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px 21px;position:relative;overflow:hidden}
+.grade::before{content:"";position:absolute;left:0;right:0;top:0;height:4px}
+.grade.g1::before{background:#E14B3C}.grade.g2::before{background:var(--orange)}.grade.g3::before{background:#3ACB82}
+.grade .gt{font-size:11.5px;font-family:var(--mono);font-weight:800;letter-spacing:.1em;margin-bottom:9px}
+.grade.g1 .gt{color:#E14B3C}.grade.g2 .gt{color:var(--orange)}.grade.g3 .gt{color:#3ACB82}
+.grade h3{font-size:18.5px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px}
+.grade h3 code{font-family:var(--mono);font-size:15px;color:var(--orange-hi)}
+.grade .gw{font-size:12.5px;color:#8B8B94;font-family:var(--mono);margin-bottom:9px}
+.grade p{font-size:13.4px;color:var(--muted);line-height:1.56}
+.grade p b{color:#D9D9DE}
+
+.bars{display:flex;flex-direction:column;gap:8px}
+.barrow{display:flex;align-items:center;gap:13px}
+.barrow .nm{font-size:13px;font-weight:700;flex:none;width:196px;letter-spacing:-.2px;font-family:var(--mono)}
+.barrow .tr{flex:1;height:24px;background:#131316;border:1px solid #232329;border-radius:7px;overflow:hidden}
+.barrow .fl{height:100%;border-radius:6px 0 0 6px}
+.barrow .tk{font-family:var(--mono);font-size:12.5px;font-weight:700;color:#9A9AA3;flex:none;width:74px;text-align:right}
+
+.trig{display:flex;gap:13px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 19px;margin-bottom:9px}
+.trig .ti{width:29px;height:29px;border-radius:9px;flex:none;display:grid;place-items:center;font-size:15px;background:#1E1E23;border:1px solid #33333A}
+.trig h3{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.trig h3 code{font-family:var(--mono);font-size:13.5px;color:var(--orange-hi)}
+.trig p{font-size:13.1px;color:var(--muted);margin-top:4px;line-height:1.52}
+.trig p b{color:#D9D9DE}
+.trig p code{font-family:var(--mono);font-size:12.2px;color:#FFC29E;background:#232327;padding:1px 6px;border-radius:5px}
+</style>
+</head>
+<body>
+<div class="deck">
+<div class="stage" id="stage">
+<svg style="display:none" aria-hidden="true"><symbol id="spark" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2.7" stroke-linecap="round" fill="none"><path d="M12 2.6v18.8M2.6 12h18.8M5.4 5.4l13.2 13.2M18.6 5.4L5.4 18.6"/></g></symbol></svg>
+
+<!-- ═══════════ 01 · COVER ═══════════ -->
+<section class="slide active">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="cover-top">
+    <div style="width:90%">
+      <svg viewBox="0 0 1020 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ca" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#A29A89"/></marker>
+          <marker id="co" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#FF5B1F"/></marker>
+        </defs>
+        <!-- 왼쪽: 하나의 거대한 파일 -->
+        <text x="140" y="24" text-anchor="middle" font-size="12.5" font-weight="800" fill="#A09684" font-family="inherit">루트 CLAUDE.md 하나</text>
+        <rect x="46" y="36" width="188" height="216" rx="13" fill="#FFFFFF" stroke="#C4A08E" stroke-width="1.8"/>
+        <g font-family="ui-monospace,monospace" font-size="9.5" fill="#8C8474">
+          <text x="66" y="60">API 규약 …</text><text x="66" y="78">프런트 규약 …</text>
+          <text x="66" y="96">DB 마이그레이션 …</text><text x="66" y="114">테스트 규약 …</text>
+          <text x="66" y="132">배포 절차 …</text><text x="66" y="150">보안 정책 …</text>
+          <text x="66" y="168">레거시 주의 …</text><text x="66" y="186">모바일 규약 …</text>
+          <text x="66" y="204">인프라 …</text><text x="66" y="222">디자인 시스템 …</text>
+        </g>
+        <text x="140" y="272" text-anchor="middle" font-size="11" font-weight="800" fill="#B23F14" font-family="inherit">매 세션 전부 로드 · 대부분 지금 일과 무관</text>
+        <line x1="248" y1="144" x2="300" y2="144" stroke="#FF5B1F" stroke-width="2.2" marker-end="url(#co)"/>
+        <text x="274" y="134" text-anchor="middle" font-size="11" font-weight="800" fill="#B23F14" font-family="inherit">분산</text>
+
+        <!-- 오른쪽: 3등급 -->
+        <g font-family="inherit">
+          <rect x="316" y="30" width="220" height="76" rx="12" fill="#3F3A31"/>
+          <text x="426" y="56" text-anchor="middle" font-size="13" font-weight="800" fill="#F6F1E7">항상 로드</text>
+          <text x="426" y="76" text-anchor="middle" font-size="10.5" fill="#BCB4A4">루트 CLAUDE.md · 얇게</text>
+          <text x="426" y="93" text-anchor="middle" font-size="10" fill="#9A9384">저장소 지도와 공통 규약만</text>
+
+          <rect x="316" y="116" width="220" height="76" rx="12" fill="#FF5B1F"/>
+          <text x="426" y="142" text-anchor="middle" font-size="13" font-weight="800" fill="#FFFFFF">매칭될 때 로드</text>
+          <text x="426" y="162" text-anchor="middle" font-size="10.5" fill="#FFE0D2">.claude/rules/ · paths 글롭</text>
+          <text x="426" y="179" text-anchor="middle" font-size="10" fill="#FFD0BC">폴더별 CLAUDE.md</text>
+
+          <rect x="316" y="202" width="220" height="76" rx="12" fill="#FFFFFF" stroke="#B7AF9F" stroke-width="1.7"/>
+          <text x="426" y="228" text-anchor="middle" font-size="13" font-weight="800" fill="#3F3A31">필요할 때 로드</text>
+          <text x="426" y="248" text-anchor="middle" font-size="10.5" fill="#8C8474">스킬 · 절차와 참조 자료</text>
+          <text x="426" y="265" text-anchor="middle" font-size="10" fill="#A29A89">이름과 설명만 상시 노출</text>
+        </g>
+
+        <line x1="548" y1="144" x2="596" y2="144" stroke="#A29A89" stroke-width="1.6" marker-end="url(#ca)"/>
+
+        <!-- 결과 -->
+        <text x="800" y="24" text-anchor="middle" font-size="12.5" font-weight="800" fill="#A09684" font-family="inherit">지금 작업에 필요한 것만</text>
+        <rect x="612" y="36" width="376" height="216" rx="13" fill="#EDE6D8" stroke="#CFC7B6" stroke-width="1.5"/>
+        <g font-family="inherit">
+          <rect x="634" y="58" width="332" height="40" rx="9" fill="#FFFFFF" stroke="#B7AF9F" stroke-width="1.5"/>
+          <text x="652" y="83" font-size="11.5" font-weight="800" fill="#3F3A31">루트 규약</text>
+          <text x="948" y="83" text-anchor="end" font-size="10" fill="#8C8474" font-family="ui-monospace,monospace">항상</text>
+
+          <rect x="634" y="108" width="332" height="40" rx="9" fill="rgba(255,91,31,.14)" stroke="#FF5B1F" stroke-width="1.5"/>
+          <text x="652" y="133" font-size="11.5" font-weight="800" fill="#B23F14">packages/api 규약</text>
+          <text x="948" y="133" text-anchor="end" font-size="10" fill="#B23F14" font-family="ui-monospace,monospace">지금 여기서 작업 중</text>
+
+          <rect x="634" y="158" width="332" height="34" rx="9" fill="#E4DDCE" stroke="#CFC7B6" stroke-dasharray="4 4"/>
+          <text x="652" y="180" font-size="11" fill="#948C7A">packages/web 규약 — 안 읽힘</text>
+          <rect x="634" y="200" width="332" height="34" rx="9" fill="#E4DDCE" stroke="#CFC7B6" stroke-dasharray="4 4"/>
+          <text x="652" y="222" font-size="11" fill="#948C7A">legacy/ 규약 — 안 읽힘</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="cover-bot">
+    <span class="badge">• 클로드 코드 완벽 마스터 · 수업 자료</span>
+    <h1>전부 읽히지 말고<br><em style="color:var(--orange);font-style:normal">필요할 때</em> 읽히게 한다</h1>
+    <div class="sub">대규모 프로젝트 <b>컨텍스트 엔지니어링</b> &nbsp;·&nbsp; <code style="font-family:var(--mono);font-size:15px;color:#FFC29E">.claude/rules/</code> 조건부 규칙 + 폴더별 CLAUDE.md 분산 · 공식 문서 기반 2026.08</div>
+  </div>
+</section>
+
+<!-- ═══════════ 02 · WHY ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">02</div>
+  <div class="body">
+    <div class="eyebrow">문제 인식 · WHY</div>
+    <h1>루트 파일 하나는 <em>반드시 둘 중 하나로</em> 망가진다</h1>
+    <div class="lead">공식 문서의 표현 그대로다 — 저장소가 커지면 루트 CLAUDE.md 하나는 <b>"모든 서브시스템의 규약을 담느라 비대해지거나, 쓸모없을 만큼 일반적인 내용에 머문다"</b>. 중간은 없다.</div>
+    <div class="vs">
+      <div class="vsbox was">
+        <div class="k">비대해지는 경우</div>
+        <div class="t">API 작업 중에<br>모바일 규약을 읽는다</div>
+        <div class="d">지금 하는 일과 <b style="color:#F0B49B">무관한 지시가 컨텍스트를 차지</b>한다. 토큰만 쓰는 게 아니라 — 파일이 길수록 <b style="color:#F0B49B">지시 준수율 자체가 떨어진다</b>.</div>
+      </div>
+      <div class="vsarr">→</div>
+      <div class="vsbox was" style="background:#1A1418;border-color:#3A2438">
+        <div class="k" style="color:#C88AB8">일반론에 머무는 경우</div>
+        <div class="t">"코드를 깔끔하게<br>작성하세요"</div>
+        <div class="d">모든 팀에 맞추려다 <b style="color:#DDA9CF">검증 불가능한 문장</b>만 남는다. 이런 지시는 있으나 마나이며, 정작 필요한 구체적 규약은 아무 데도 없다.</div>
+      </div>
+    </div>
+    <div class="note">해결의 방향은 하나다 — <b style="color:#FF8A57">지시를 없애는 게 아니라, 읽히는 시점을 옮기는 것</b>. 이 강의는 그 시점을 제어하는 세 가지 장치를 다룬다.</div>
+  </div>
+  <div class="takeaway">문제는 <b>양이 아니라 타이밍</b>이다</div>
+</section>
+
+<!-- ═══════════ 03 · 예산 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">03</div>
+  <div class="body">
+    <div class="eyebrow">전제 · BUDGET</div>
+    <h1>길어질수록 <em>덜 지킨다</em></h1>
+    <div class="grid3" style="margin-bottom:18px">
+      <div class="gcard">
+        <div class="gh"><span class="em">📏</span><h3>200줄이 기준선</h3></div>
+        <p>공식 권고는 <b>파일당 200줄 미만</b>. 넘으면 컨텍스트를 더 쓰고 <b style="color:#FF8A57">준수율이 떨어진다</b>고 명시돼 있다.</p>
+      </div>
+      <div class="gcard">
+        <div class="gh"><span class="em">📥</span><h3>길이와 무관하게 전부 로드</h3></div>
+        <p>CLAUDE.md에는 <b>잘라 읽는 상한이 없다</b>. 1000줄이면 1000줄이 다 들어간다 — 알아서 요약해 주지 않는다.</p>
+      </div>
+      <div class="gcard warn">
+        <div class="gh"><span class="em">💬</span><h3>시스템 프롬프트가 아니다</h3></div>
+        <p>CLAUDE.md는 시스템 프롬프트 <b style="color:#D9D9DE">뒤에 붙는 사용자 메시지</b>로 전달된다. 강제 설정이 아니라 <b>맥락</b>이라서 준수가 보장되지 않는다.</p>
+      </div>
+    </div>
+    <div class="cols">
+      <div class="gcard good" style="padding:17px 21px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">🔒</span><h3>반드시 막아야 한다면 훅으로</h3></div>
+        <p style="font-size:13.3px">"커밋 전에 무조건 린트", "이 경로는 절대 수정 금지"처럼 <b style="color:#D9D9DE">판단에 맡기면 안 되는 것</b>은 CLAUDE.md가 아니라 <b>PreToolUse 훅</b>이나 <code>permissions.deny</code>로 건다. 훅은 Claude의 결정과 무관하게 실행된다.</p>
+      </div>
+      <div class="gcard" style="padding:17px 21px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">✍️</span><h3>검증 가능한 문장으로 쓴다</h3></div>
+        <p style="font-size:13.3px">"들여쓰기는 2칸" &gt; "포맷을 잘 맞춰라"<br>"커밋 전 <code>npm test</code> 실행" &gt; "변경을 테스트해라"<br>"API 핸들러는 <code>src/api/handlers/</code>" &gt; "파일을 정리해라"</p>
+      </div>
+    </div>
+    <div class="note">블록 단위 HTML 주석 <code>&lt;!-- 유지보수 메모 --&gt;</code>은 컨텍스트에 주입되기 전에 <b>제거된다</b>. 사람용 메모는 여기에 적으면 <b style="color:#C9C9CF">토큰을 한 톨도 쓰지 않는다</b>(코드 블록 안의 주석은 그대로 유지된다).</div>
+  </div>
+  <div class="takeaway">읽히는 모든 줄은 <b>비용이자 잡음</b>이다</div>
+</section>
+
+<!-- ═══════════ 04 · 실제 진단 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">04</div>
+  <div class="body">
+    <div class="eyebrow">진단 · A REAL CASE</div>
+    <h1>이 강의를 준비한 환경을 <em>실제로 재보니</em></h1>
+    <div class="lead"><code>~/.claude/rules/</code>에 규칙을 잘 쪼개 둔 설정이다. 파일도 주제별로 나뉘어 있다. 그런데 <b>여섯 개 전부가 매 세션 무조건 로드되고 있었다</b>.</div>
+    <div class="bars" style="margin-bottom:16px">
+      <div class="barrow"><div class="nm">genius-thinking.md</div><div class="tr"><div class="fl" style="width:100%;background:linear-gradient(90deg,#E14B3C,#FF5B1F)"></div></div><div class="tk">176줄</div></div>
+      <div class="barrow"><div class="nm">ui-ux-style.md</div><div class="tr"><div class="fl" style="width:22.2%;background:#FF5B1F"></div></div><div class="tk">39줄</div></div>
+      <div class="barrow"><div class="nm">web-front-end-style.md</div><div class="tr"><div class="fl" style="width:12.5%;background:#E8930C"></div></div><div class="tk">22줄</div></div>
+      <div class="barrow"><div class="nm">commit-style.md</div><div class="tr"><div class="fl" style="width:8.5%;background:#22A96B"></div></div><div class="tk">15줄</div></div>
+      <div class="barrow"><div class="nm">web-back-end-style.md</div><div class="tr"><div class="fl" style="width:7.4%;background:#3D6FE0"></div></div><div class="tk">13줄</div></div>
+      <div class="barrow"><div class="nm">context7.md</div><div class="tr"><div class="fl" style="width:5.7%;background:#8B5CF6"></div></div><div class="tk">10줄</div></div>
+    </div>
+    <div class="grid3">
+      <div class="gcard warn" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">📊</span><h3>한 파일이 61%</h3></div>
+        <p style="font-size:13.1px">사고법 프롬프트 하나가 <b>규칙 전체 분량의 절반 이상</b>을 차지한다. 코드를 고치는 세션에도 매번 들어간다.</p>
+      </div>
+      <div class="gcard warn" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">🎭</span><h3>프런트와 백엔드가 동시에</h3></div>
+        <p style="font-size:13.1px">React 규약과 레이어드 아키텍처 규약이 <b style="color:#D9D9DE">항상 같이 들어온다</b>. 어느 쪽 작업이든 절반은 잡음이다.</p>
+      </div>
+      <div class="gcard good" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">🔧</span><h3>고치는 데는 세 줄</h3></div>
+        <p style="font-size:13.1px">각 파일 맨 위에 <code>paths:</code> 프런트매터를 넣으면 <b>해당 파일을 다룰 때만</b> 로드된다. 뒤에서 문법을 본다.</p>
+      </div>
+    </div>
+    <div class="note">폴더를 나눴다고 조건부가 되는 게 아니다. <b style="color:#FF8A57">조건을 적어야 조건부가 된다</b> — 이 강의가 존재하는 이유가 여기에 있다.</div>
+  </div>
+</section>
+
+<!-- ═══════════ 05 · 3등급 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">05</div>
+  <div class="body">
+    <div class="eyebrow">전체 지도 · THREE GRADES</div>
+    <h1>모든 지시는 <em>세 등급 중 하나</em>에 속한다</h1>
+    <div class="grid3" style="margin-bottom:16px">
+      <div class="grade g1">
+        <div class="gt">GRADE 1 · ALWAYS</div>
+        <h3>항상 로드</h3>
+        <div class="gw">CLAUDE.md · paths 없는 rules</div>
+        <p>세션 시작 시 <b>무조건</b> 컨텍스트에 들어간다. 어느 파일을 만지든 필요한 것만 여기 둔다 — <b style="color:#D9D9DE">빌드 명령, 저장소 지도, 공통 규약</b>.</p>
+      </div>
+      <div class="grade g2">
+        <div class="gt">GRADE 2 · ON MATCH</div>
+        <h3>매칭될 때 로드</h3>
+        <div class="gw">paths 규칙 · 폴더별 CLAUDE.md</div>
+        <p>Claude가 <b>해당 파일을 실제로 읽을 때</b> 들어온다. 코드베이스의 특정 부분에만 해당하는 규약이 여기 속한다. <b style="color:#D9D9DE">이 강의의 본체</b>다.</p>
+      </div>
+      <div class="grade g3">
+        <div class="gt">GRADE 3 · ON DEMAND</div>
+        <h3>필요할 때 로드</h3>
+        <div class="gw">스킬 · 플러그인</div>
+        <p>Claude가 <b>관련 있다고 판단</b>하거나 사용자가 부를 때만 본문이 들어온다. <b style="color:#D9D9DE">여러 단계짜리 절차와 참조 자료</b>가 여기 속한다.</p>
+      </div>
+    </div>
+    <div class="sum">
+      <div class="n">RULE</div>
+      <div class="k"><em>배치 기준</em></div>
+      <div class="d">공식 문서의 한 문장이 기준을 다 담는다 — <b style="color:#D9D9DE">"여러 단계짜리 절차이거나 코드베이스의 한 부분에만 해당한다면, 스킬이나 path 스코프 규칙으로 옮겨라"</b></div>
+    </div>
+    <div class="note">이 강의는 <b>1부</b> 무엇이 언제 로드되는가 → <b>2부</b> <code>.claude/rules/</code> 조건부 규칙 → <b>3부</b> 폴더별 CLAUDE.md 분산 → <b>4부</b> 통합 설계 순으로 간다.</div>
+  </div>
+  <div class="takeaway">등급을 정하는 것이 <b>설계의 첫 단계</b>다</div>
+</section>
+
+<!-- ═══════════ 06 · 4계층 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">06</div>
+  <div class="body">
+    <div class="eyebrow">1부 ① · 계층</div>
+    <h1>메모리 파일은 <em>네 계층</em>에 산다</h1>
+    <div class="lyr L1">
+      <div class="ln">관리 정책</div>
+      <div class="lp">macOS /Library/Application Support/ClaudeCode/CLAUDE.md<br>Linux·WSL /etc/claude-code/CLAUDE.md &nbsp;·&nbsp; Windows C:\Program Files\ClaudeCode\CLAUDE.md</div>
+      <div class="lu">조직 전체 · IT가 배포<br><b>개인 설정으로 제외 불가</b></div>
+    </div>
+    <div class="lyr L2">
+      <div class="ln">사용자</div>
+      <div class="lp">~/.claude/CLAUDE.md &nbsp;·&nbsp; ~/.claude/rules/*.md</div>
+      <div class="lu">내 모든 프로젝트<br><b>개인 취향과 도구 습관</b></div>
+    </div>
+    <div class="lyr L3">
+      <div class="ln">프로젝트</div>
+      <div class="lp">./CLAUDE.md &nbsp;또는&nbsp; ./.claude/CLAUDE.md &nbsp;·&nbsp; ./.claude/rules/*.md</div>
+      <div class="lu">팀 공유 · 버전 관리로 배포<br><b>아키텍처와 팀 규약</b></div>
+    </div>
+    <div class="lyr L4">
+      <div class="ln">로컬</div>
+      <div class="lp">./CLAUDE.local.md</div>
+      <div class="lu">나만 · .gitignore에 추가<br><b>내 샌드박스 URL, 테스트 데이터</b></div>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">🧬</span><h3>덮어쓰지 않고 <b>이어 붙인다</b></h3></div>
+        <p style="font-size:13.1px">넓은 계층이 좁은 계층에 지워지는 게 아니라 <b style="color:#D9D9DE">전부 연결되어</b> 컨텍스트에 들어간다. 계층 간 모순은 자동으로 해소되지 않는다.</p>
+      </div>
+      <div class="gcard warn" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">🌳</span><h3>워크트리를 쓴다면 주의</h3></div>
+        <p style="font-size:13.1px"><code>CLAUDE.local.md</code>는 gitignore되므로 <b>만든 워크트리에만 존재</b>한다. 여러 워크트리에서 공유하려면 홈 디렉터리 파일을 <code>@~/.claude/…</code>로 import한다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">넓은 것부터 <b>좁은 것 순</b>으로 쌓인다</div>
+</section>
+
+<!-- ═══════════ 07 · 로드 순서 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">07</div>
+  <div class="body">
+    <div class="eyebrow">1부 ② · 순서</div>
+    <h1>가까운 지시가 <em>나중에 읽힌다</em></h1>
+    <div class="lead">Claude Code는 현재 작업 디렉터리에서 <b>위로 걸어 올라가며</b> 각 디렉터리의 <code>CLAUDE.md</code>와 <code>CLAUDE.local.md</code>를 찾는다. 그리고 <b>파일시스템 루트에서 작업 디렉터리 방향으로</b> 순서를 매겨 이어 붙인다.</div>
+    <div class="flowwrap" style="padding:16px 14px">
+      <svg viewBox="0 0 1124 168" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="oa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#FF5B1F"/></marker></defs>
+        <text x="14" y="20" font-size="12" font-weight="800" fill="#8A8A93" font-family="inherit">foo/bar/ 에서 claude 를 실행했다면 — 읽히는 순서</text>
+        <g font-family="inherit">
+          <rect x="14" y="36" width="200" height="58" rx="11" fill="#1A1A1E" stroke="#8B5CF6" stroke-width="1.5"/>
+          <text x="114" y="60" text-anchor="middle" font-size="12.5" font-weight="800" fill="#C9A6F5">① 관리 정책</text>
+          <text x="114" y="79" text-anchor="middle" font-size="10.5" fill="#85858E">조직 전체</text>
+          <line x1="220" y1="65" x2="244" y2="65" stroke="#55555E" stroke-width="1.5" marker-end="url(#oa)"/>
+          <rect x="250" y="36" width="200" height="58" rx="11" fill="#1A1A1E" stroke="#3D6FE0" stroke-width="1.5"/>
+          <text x="350" y="60" text-anchor="middle" font-size="12.5" font-weight="800" fill="#7FB2FF">② 사용자</text>
+          <text x="350" y="79" text-anchor="middle" font-size="10.5" fill="#85858E">~/.claude/</text>
+          <line x1="456" y1="65" x2="480" y2="65" stroke="#55555E" stroke-width="1.5" marker-end="url(#oa)"/>
+          <rect x="486" y="36" width="200" height="58" rx="11" fill="#1A1A1E" stroke="#2E2E34" stroke-width="1.5"/>
+          <text x="586" y="60" text-anchor="middle" font-size="12.5" font-weight="800" fill="#C9C9CF">③ foo/CLAUDE.md</text>
+          <text x="586" y="79" text-anchor="middle" font-size="10.5" fill="#85858E">상위 디렉터리</text>
+          <line x1="692" y1="65" x2="716" y2="65" stroke="#55555E" stroke-width="1.5" marker-end="url(#oa)"/>
+          <rect x="722" y="36" width="212" height="58" rx="11" fill="rgba(255,91,31,.12)" stroke="#FF5B1F" stroke-width="1.7"/>
+          <text x="828" y="60" text-anchor="middle" font-size="12.5" font-weight="800" fill="#FF8A57">④ foo/bar/CLAUDE.md</text>
+          <text x="828" y="79" text-anchor="middle" font-size="10.5" fill="#9A9AA3">작업 디렉터리</text>
+          <line x1="940" y1="65" x2="964" y2="65" stroke="#55555E" stroke-width="1.5" marker-end="url(#oa)"/>
+          <rect x="970" y="36" width="140" height="58" rx="11" fill="rgba(232,147,12,.12)" stroke="#E8930C" stroke-width="1.5"/>
+          <text x="1040" y="60" text-anchor="middle" font-size="12.5" font-weight="800" fill="#E8930C">⑤ .local.md</text>
+          <text x="1040" y="79" text-anchor="middle" font-size="10.5" fill="#9A9AA3">같은 층에서 뒤에</text>
+        </g>
+        <text x="562" y="132" text-anchor="middle" font-size="11.5" font-weight="800" fill="#FF8A57" font-family="inherit">모두 연결(concatenate)된다 — 뒤엣것이 앞엣것을 지우지 않는다</text>
+        <text x="562" y="154" text-anchor="middle" font-size="11" fill="#77777F" font-family="inherit">각 디렉터리 안에서는 CLAUDE.md 다음에 CLAUDE.local.md가 붙어, 개인 메모가 그 층의 마지막이 된다</text>
+      </svg>
+    </div>
+    <div class="note"><b style="color:#FF8A57">모순은 알아서 정리되지 않는다.</b> 두 파일이 같은 행동에 대해 다른 지시를 하면 <b>Claude가 임의로 하나를 고른다</b>. 계층을 늘릴수록 정기적으로 훑어 충돌을 걷어내야 한다.</div>
+  </div>
+  <div class="takeaway">우선순위가 아니라 <b>누적</b>이다</div>
+</section>
+
+<!-- ═══════════ 08 · 위아래 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">08</div>
+  <div class="body">
+    <div class="eyebrow">1부 ③ · 핵심 메커니즘</div>
+    <h1>위는 <em>전부</em>, 아래는 <em>필요할 때</em></h1>
+    <div class="flowwrap" style="padding:16px 14px">
+      <svg viewBox="0 0 1124 224" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="da" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6E6E76"/></marker>
+          <marker id="db" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#FF5B1F"/></marker></defs>
+        <!-- 트리 -->
+        <g font-family="ui-monospace,monospace" font-size="11.5">
+          <rect x="20" y="14" width="290" height="30" rx="8" fill="rgba(58,203,130,.10)" stroke="#3ACB82" stroke-width="1.4"/>
+          <text x="38" y="34" fill="#3ACB82" font-weight="700">monorepo/CLAUDE.md</text>
+          <rect x="44" y="52" width="290" height="30" rx="8" fill="rgba(58,203,130,.10)" stroke="#3ACB82" stroke-width="1.4"/>
+          <text x="62" y="72" fill="#3ACB82" font-weight="700">packages/CLAUDE.md</text>
+          <rect x="68" y="90" width="290" height="30" rx="8" fill="rgba(255,91,31,.14)" stroke="#FF5B1F" stroke-width="1.7"/>
+          <text x="86" y="110" fill="#FF8A57" font-weight="700">packages/api/CLAUDE.md</text>
+          <text x="372" y="110" font-size="11" fill="#FF8A57" font-family="inherit" font-weight="800">← 여기서 claude 실행</text>
+          <rect x="92" y="128" width="290" height="30" rx="8" fill="#141417" stroke="#2C2C32" stroke-width="1.3" stroke-dasharray="4 4"/>
+          <text x="110" y="148" fill="#77777F">api/src/db/CLAUDE.md</text>
+          <rect x="92" y="166" width="290" height="30" rx="8" fill="#141417" stroke="#2C2C32" stroke-width="1.3" stroke-dasharray="4 4"/>
+          <text x="110" y="186" fill="#77777F">api/src/routes/CLAUDE.md</text>
+        </g>
+        <!-- 오른쪽 설명 -->
+        <line x1="520" y1="14" x2="520" y2="210" stroke="#2C2C32" stroke-width="1.3" stroke-dasharray="6 6"/>
+        <g font-family="inherit">
+          <rect x="556" y="26" width="548" height="72" rx="12" fill="rgba(58,203,130,.08)" stroke="#3ACB82" stroke-width="1.5"/>
+          <text x="580" y="52" font-size="13" font-weight="800" fill="#3ACB82">조상 방향 · 시작하자마자 전부</text>
+          <text x="580" y="74" font-size="11" fill="#9A9AA3">작업 디렉터리와 그 위 모든 디렉터리의 CLAUDE.md · CLAUDE.local.md 를</text>
+          <text x="580" y="90" font-size="11" fill="#9A9AA3">세션 시작 시점에 통째로 읽어 들인다. 내가 고를 수 없다.</text>
+
+          <rect x="556" y="112" width="548" height="94" rx="12" fill="rgba(255,91,31,.08)" stroke="#FF5B1F" stroke-width="1.5"/>
+          <text x="580" y="138" font-size="13" font-weight="800" fill="#FF8A57">하위 방향 · 그 폴더의 파일을 읽을 때</text>
+          <text x="580" y="160" font-size="11" fill="#9A9AA3">시작 시에는 존재조차 들어오지 않는다. Claude가 그 디렉터리 안의</text>
+          <text x="580" y="176" font-size="11" fill="#9A9AA3">파일을 실제로 읽는 순간 해당 CLAUDE.md 가 컨텍스트에 합류한다.</text>
+          <text x="580" y="196" font-size="11" font-weight="800" fill="#FFB894">→ 이 온디맨드 동작이 대규모 저장소를 지탱하는 핵심이다</text>
+        </g>
+      </svg>
+    </div>
+    <div class="note">공식 문서의 표현 그대로다 — <b>"작업 디렉터리 위 계층의 파일은 실행 시 전부 로드된다. 하위 디렉터리의 파일은 Claude가 그 디렉터리의 파일을 읽을 때 온디맨드로 로드된다."</b> 다음 파트에서 볼 <code>paths:</code> 규칙도 <b style="color:#C9C9CF">정확히 같은 트리거</b>를 쓴다.</div>
+  </div>
+  <div class="takeaway">아래로 미룰수록 <b>세션이 가벼워진다</b></div>
+</section>
+
+<!-- ═══════════ 09 · 시작 위치 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">09</div>
+  <div class="body">
+    <div class="eyebrow">1부 ④ · 시작 위치</div>
+    <h1>어디서 <code style="font-family:var(--mono);font-size:34px;color:var(--orange-hi)">claude</code>를 치느냐가 <em>판을 정한다</em></h1>
+    <table class="tbl tight" style="margin-bottom:16px">
+      <colgroup><col style="width:17%"><col style="width:23%"><col style="width:35%"><col style="width:25%"></colgroup>
+      <thead><tr><th>시작 위치</th><th>파일 접근 범위</th><th>시작 시 로드되는 CLAUDE.md</th><th>어울리는 작업</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>저장소 루트</b></td>
+          <td class="mut">모든 파일</td>
+          <td class="mut">루트만. 하위는 <b>읽을 때 온디맨드</b>로 합류</td>
+          <td class="mut">여러 패키지·서브시스템에 걸친 작업</td>
+        </tr>
+        <tr>
+          <td><b>하위 디렉터리</b></td>
+          <td class="mut">그 서브트리만 (추가 승인 전까지)</td>
+          <td class="mut">그 디렉터리 + <b>모든 조상</b>의 파일</td>
+          <td class="mut">한 패키지·서브시스템에 국한된 작업</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="cols">
+      <div class="gcard warn" style="padding:16px 20px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">⚠️</span><h3>settings.json은 <b>상속되지 않는다</b></h3></div>
+        <p style="font-size:13.2px">CLAUDE.md는 상위 디렉터리까지 훑어 올라가지만, <code>.claude/settings.json</code>은 <b style="color:#D9D9DE">시작한 디렉터리에서만</b> 읽힌다. 루트의 settings.json은 <b>루트에서 시작했을 때만</b> 적용된다.</p>
+        <p style="font-size:13.2px;margin-top:8px">→ 하위 디렉터리에서 세션을 여는 팀이라면 각 패키지의 <code>.claude/settings.json</code>이 <b>자기 완결적</b>이어야 한다.</p>
+      </div>
+      <div class="gcard good" style="padding:16px 20px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">🎯</span><h3>가장 값싼 최적화</h3></div>
+        <p style="font-size:13.2px">오늘은 API만 만진다면 <b style="color:#D9D9DE"><code>packages/api/</code>에서 세션을 연다</b>. 그것만으로 다른 패키지의 CLAUDE.md·규칙·스킬이 전부 시야에서 사라진다.</p>
+        <p style="font-size:13.2px;margin-top:8px">설정 파일 한 줄 고치지 않고 얻는 효과이며, 뒤에서 볼 <code>claudeMdExcludes</code>보다 <b>먼저 시도할 방법</b>이다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">범위를 좁히는 <b>가장 빠른 손잡이</b>다</div>
+</section>
+
+<!-- ═══════════ 10 · import ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">10</div>
+  <div class="body">
+    <div class="eyebrow">1부 ⑤ · IMPORT</div>
+    <h1><code style="font-family:var(--mono);font-size:34px;color:var(--orange-hi)">@import</code>는 정리는 되지만 <em>절약은 안 된다</em></h1>
+    <div class="cols">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">CLAUDE.md 안의 import 문법</span><span class="tag2">SYNTAX</span></div>
+        <pre class="tight">프로젝트 개요는 <b>@README</b> 를,
+사용 가능한 명령은 <b>@package.json</b> 을 참고한다.
+
+<span class="c"># 추가 지시</span>
+- git 워크플로 <b>@docs/git-instructions.md</b>
+- 개인 설정 <b>@~/.claude/my-project-notes.md</b>
+
+<span class="c">// 백틱으로 감싸면 import 되지 않는다</span>
+<span class="c">// `@README` 는 그냥 텍스트로 남는다</span></pre>
+      </div>
+      <div>
+        <div class="keyrow"><div class="kb hot">최대 4홉</div><div>
+          <h3>재귀 import의 깊이 한계</h3>
+          <p>import된 파일이 또 import할 수 있지만 <b>네 단계까지</b>다.</p>
+        </div></div>
+        <div class="keyrow"><div class="kb">상대 경로</div><div>
+          <h3>작업 디렉터리 기준이 아니다</h3>
+          <p><b style="color:#D9D9DE">import 문을 담고 있는 파일</b>을 기준으로 풀린다. 여기서 실수가 잦다.</p>
+        </div></div>
+        <div class="keyrow" style="margin-bottom:0"><div class="kb">외부 경로</div><div>
+          <h3>승인 대화상자가 한 번 뜬다</h3>
+          <p>프로젝트 메모리의 import가 <b>작업 디렉터리 밖</b>을 가리키면 최초에 확인을 받는다. 거절하면 <b style="color:#FF8A57">그대로 비활성 상태로 남는다</b>. 사용자 스코프 파일은 내가 쓴 것이라 묻지 않는다.</p>
+        </div></div>
+      </div>
+    </div>
+    <div class="gcard warn" style="padding:16px 21px;margin-top:16px">
+      <div class="gh" style="margin-bottom:7px"><span class="em">🧨</span><h3>가장 흔한 착각 — "쪼갰으니 가벼워졌겠지"</h3></div>
+      <p style="font-size:13.4px">import된 파일은 <b style="color:#D9D9DE">시작 시점에 전부 펼쳐져 컨텍스트에 들어간다</b>. 파일을 열 개로 나눠 import해도 토큰은 1바이트도 줄지 않는다. import는 <b>사람이 관리하기 좋으라고</b> 있는 기능이지 컨텍스트 절약 장치가 아니다. 실제로 줄이려면 다음 파트의 <code>paths:</code> 규칙이나 폴더별 배치를 써야 한다.</p>
+    </div>
+  </div>
+  <div class="takeaway">쪼개는 것과 <b>미루는 것</b>은 다르다</div>
+</section>
+
+<!-- ═══════════ 11 · 진단 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">11</div>
+  <div class="body">
+    <div class="eyebrow">1부 ⑥ · 진단</div>
+    <h1>추측하지 말고 <em>실제로 확인한다</em></h1>
+    <div class="trig">
+      <div class="ti">🔎</div>
+      <div>
+        <h3><code>/context</code> — 지금 무엇이 들어와 있나</h3>
+        <p><b>Memory files</b> 항목에 실제로 로드된 파일이 나열된다. 여기 없으면 Claude는 그 파일을 <b style="color:#D9D9DE">못 보고 있는 것</b>이다. "왜 안 지키지?" 싶을 때 <b>제일 먼저 볼 화면</b>이다.</p>
+      </div>
+    </div>
+    <div class="trig">
+      <div class="ti">📝</div>
+      <div>
+        <h3><code>/memory</code> — 목록과 편집</h3>
+        <p>사용자·프로젝트 스코프의 메모리 파일 위치를 <b>아직 없는 것까지</b> 보여 주고, 고르면 에디터로 열어 준다. 없는 파일을 고르면 만들어 준다. 자동 메모리 토글도 여기에 있다.</p>
+      </div>
+    </div>
+    <div class="trig">
+      <div class="ti">🪝</div>
+      <div>
+        <h3><code>InstructionsLoaded</code> 훅 — 언제 왜 로드됐나</h3>
+        <p>어떤 지시 파일이 <b style="color:#D9D9DE">언제, 어떤 이유로</b> 로드되는지 기록한다. <b>path 스코프 규칙과 하위 폴더 지연 로딩을 디버깅할 때</b> 결정적이다 — 규칙이 안 걸리는 이유를 눈으로 볼 수 있는 유일한 방법이다.</p>
+      </div>
+    </div>
+    <div class="trig" style="margin-bottom:0">
+      <div class="ti">🩺</div>
+      <div>
+        <h3><code>/doctor</code> — 비대해진 CLAUDE.md 다듬기</h3>
+        <p>커밋된 CLAUDE.md에 대해 <b>줄일 곳을 제안</b>한다. 디렉터리 구조·의존성 목록·아키텍처 개요처럼 <b style="color:#D9D9DE">코드베이스에서 유추 가능한 내용은 덜어내고</b>, 함정·판단 근거·기본값과 다른 규약은 남긴다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">보이지 않는 컨텍스트는 <b>고칠 수 없다</b></div>
+</section>
+
+<!-- ═══════════ 12 · rules 구조 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">12</div>
+  <div class="body">
+    <div class="eyebrow">2부 ① · RULES 구조</div>
+    <h1>규칙 폴더는 <em>한 파일 한 주제</em>다</h1>
+    <div class="cols">
+      <div>
+        <div class="tree">your-project/
+├── .claude/
+│   ├── <b>CLAUDE.md</b>            <i># 프로젝트 메인 지시</i>
+│   └── <b>rules/</b>
+│       ├── <u>code-style.md</u>    <i># 코드 스타일</i>
+│       ├── <u>testing.md</u>       <i># 테스트 규약</i>
+│       ├── <u>security.md</u>      <i># 보안 요구사항</i>
+│       └── <b>frontend/</b>
+│           └── <u>components.md</u> <i># 하위 폴더도 OK</i>
+└── src/</div>
+        <div class="note">모든 <code>.md</code>가 <b>재귀적으로</b> 발견된다. 규모가 커지면 <code>frontend/</code>·<code>backend/</code>처럼 폴더로 묶어도 된다.</div>
+      </div>
+      <div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🏷️</span><h3>파일명이 곧 목차다</h3></div>
+          <p style="font-size:13.2px"><code>testing.md</code>·<code>api-design.md</code>처럼 <b>내용이 드러나는 이름</b>을 쓴다. 팀이 유지보수할 때 어디를 고쳐야 할지가 파일명에서 보여야 한다.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">⚖️</span><h3>우선순위는 <code>.claude/CLAUDE.md</code>와 동급</h3></div>
+          <p style="font-size:13.2px"><code>paths</code>가 없는 규칙은 프로젝트 CLAUDE.md와 <b style="color:#D9D9DE">같은 우선순위로 시작 시 로드</b>된다. 별도 계층이 아니라 같은 층에 놓인다.</p>
+        </div>
+        <div class="gcard warn" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🎚️</span><h3><code>--setting-sources</code>와의 관계</h3></div>
+          <p style="font-size:13.2px"><code>project</code>를 빼면 프로젝트 규칙은 건너뛴다. <b style="color:#D9D9DE">v2.1.211 이전</b>에는 온디맨드로 로드되는 규칙(path 스코프·중첩 rules)이 <b>제외했는데도 로드됐다</b>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">주제별로 쪼개면 <b>팀이 고칠 수 있다</b></div>
+</section>
+
+<!-- ═══════════ 13 · paths 없으면 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">13</div>
+  <div class="body">
+    <div class="eyebrow">2부 ② · 가장 흔한 오해</div>
+    <h1>폴더에 넣었다고 <em>조건부가 되지 않는다</em></h1>
+    <div class="vs">
+      <div class="vsbox was">
+        <div class="k">paths 프런트매터 없음</div>
+        <div class="t">매 세션<br>무조건 로드</div>
+        <div class="d">파일을 아무리 잘게 쪼개도, 폴더를 아무리 예쁘게 나눠도 <b style="color:#F0B49B">전부 다 들어온다</b>. 04번 슬라이드에서 본 상황이 정확히 이것이다.</div>
+      </div>
+      <div class="vsarr">→</div>
+      <div class="vsbox now" style="background:#0E1A13;border-color:#1F4A33">
+        <div class="k" style="color:#3ACB82">paths 프런트매터 있음</div>
+        <div class="t">매칭 파일을<br>다룰 때만 로드</div>
+        <div class="d">Claude가 <b style="color:#9FE3BE">그 글롭에 걸리는 파일을 읽는 순간</b> 규칙이 합류한다. 그 전까지는 컨텍스트에 없다.</div>
+      </div>
+    </div>
+    <div class="pp" style="margin-top:18px">
+      <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">.claude/rules/api-design.md — 세 줄이면 조건부가 된다</span><span class="tag2">FIX</span></div>
+      <pre class="tight"><b>---
+paths:
+  - "src/api/**/*.ts"
+---</b>
+
+<span class="c"># API 개발 규칙</span>
+
+- 모든 엔드포인트는 입력 검증을 포함한다
+- 표준 에러 응답 형식을 사용한다
+- OpenAPI 문서 주석을 붙인다</pre>
+    </div>
+    <div class="note">04번의 사례에 대입하면 — <code>web-front-end-style.md</code>에 <code>paths: ["**/*.{tsx,jsx}"]</code>, <code>web-back-end-style.md</code>에 <code>paths: ["src/server/**"]</code>를 붙이는 것만으로 <b style="color:#C9C9CF">두 규약이 서로의 세션에서 사라진다</b>.</div>
+  </div>
+  <div class="takeaway">조건을 <b>적어야</b> 조건부다</div>
+</section>
+
+<!-- ═══════════ 14 · glob 문법 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">14</div>
+  <div class="body">
+    <div class="eyebrow">2부 ③ · 글롭 문법</div>
+    <h1><code style="font-family:var(--mono);font-size:34px;color:var(--orange-hi)">paths</code>에 쓰는 <em>패턴 문법</em></h1>
+    <div class="cols">
+      <table class="tbl tight">
+        <colgroup><col style="width:47%"><col style="width:53%"></colgroup>
+        <thead><tr><th>패턴</th><th>매칭 대상</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">**/*.ts</td><td class="mut">모든 디렉터리의 TypeScript 파일</td></tr>
+          <tr><td class="mono">src/**/*</td><td class="mut"><code>src/</code> 아래의 모든 파일</td></tr>
+          <tr><td class="mono">*.md</td><td class="mut">프로젝트 <b>루트의</b> 마크다운 파일</td></tr>
+          <tr><td class="mono">src/components/*.tsx</td><td class="mut">특정 디렉터리의 React 컴포넌트</td></tr>
+        </tbody>
+      </table>
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">여러 패턴 · 중괄호 확장</span><span class="tag2">MULTI</span></div>
+        <pre class="tight">---
+paths:
+  - "src/**/*.{ts,tsx}"
+  - "lib/**/*.ts"
+  - "tests/**/*.test.ts"
+---</pre>
+        <div class="note" style="margin-top:12px">패턴은 <b>몇 개든</b> 나열할 수 있고, 중괄호로 확장자를 묶을 수 있다. 하나라도 걸리면 규칙이 로드된다.</div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="gcard good" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">🔗</span><h3>심볼릭 경로로 도달해도 걸린다</h3></div>
+        <p style="font-size:13.1px"><b style="color:#D9D9DE">v2.1.198부터</b> 프로젝트 디렉터리로 이어지는 심볼릭 링크를 통해 파일에 닿아도 매칭이 정상 작동한다(심링크 체크아웃 환경).</p>
+      </div>
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">🎯</span><h3>흩어진 경로를 하나로 묶을 때 강하다</h3></div>
+        <p style="font-size:13.1px">마이그레이션 파일이 <code>**/migrations/**</code>처럼 <b>여러 패키지에 흩어져 있을 때</b>, 폴더별 CLAUDE.md로는 같은 내용을 여러 번 써야 하지만 규칙 하나면 끝난다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">패턴 하나가 <b>수십 개 폴더를 덮는다</b></div>
+</section>
+
+<!-- ═══════════ 15 · 트리거 시점 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">15</div>
+  <div class="body">
+    <div class="eyebrow">2부 ④ · 트리거 시점</div>
+    <h1>정확히 <em>언제</em> 규칙이 들어오나</h1>
+    <div class="flowwrap" style="padding:16px 14px">
+      <svg viewBox="0 0 1124 192" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="ta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6E6E76"/></marker></defs>
+        <g font-family="inherit">
+          <rect x="12" y="60" width="176" height="66" rx="12" fill="#17171A" stroke="#2C2C32" stroke-width="1.4"/>
+          <text x="100" y="88" text-anchor="middle" font-size="12.5" font-weight="800" fill="#EDEDEF">세션 시작</text>
+          <text x="100" y="108" text-anchor="middle" font-size="10.5" fill="#85858E">규칙은 아직 없다</text>
+          <line x1="194" y1="93" x2="222" y2="93" stroke="#55555E" stroke-width="1.6" marker-end="url(#ta)"/>
+
+          <rect x="228" y="60" width="200" height="66" rx="12" fill="#17171A" stroke="#2C2C32" stroke-width="1.4"/>
+          <text x="328" y="88" text-anchor="middle" font-size="12.5" font-weight="800" fill="#EDEDEF">Bash · Grep 실행</text>
+          <text x="328" y="108" text-anchor="middle" font-size="10.5" fill="#E14B3C">여전히 로드되지 않는다</text>
+          <line x1="434" y1="93" x2="462" y2="93" stroke="#55555E" stroke-width="1.6" marker-end="url(#ta)"/>
+
+          <rect x="468" y="46" width="232" height="94" rx="13" fill="rgba(255,91,31,.12)" stroke="#FF5B1F" stroke-width="1.8"/>
+          <text x="584" y="76" text-anchor="middle" font-size="13" font-weight="800" fill="#FF8A57">매칭 파일을 읽는다</text>
+          <text x="584" y="98" text-anchor="middle" font-size="10.5" fill="#9A9AA3" font-family="ui-monospace,monospace">Read(src/api/users.ts)</text>
+          <text x="584" y="120" text-anchor="middle" font-size="11" font-weight="800" fill="#FFB894">→ 이 순간 규칙 합류</text>
+          <line x1="706" y1="93" x2="734" y2="93" stroke="#55555E" stroke-width="1.6" marker-end="url(#ta)"/>
+
+          <rect x="740" y="60" width="176" height="66" rx="12" fill="rgba(58,203,130,.10)" stroke="#3ACB82" stroke-width="1.5"/>
+          <text x="828" y="88" text-anchor="middle" font-size="12.5" font-weight="800" fill="#3ACB82">이후 계속 유효</text>
+          <text x="828" y="108" text-anchor="middle" font-size="10.5" fill="#9A9AA3">그 세션 동안 남는다</text>
+          <line x1="922" y1="93" x2="950" y2="93" stroke="#55555E" stroke-width="1.6" marker-end="url(#ta)"/>
+
+          <rect x="956" y="60" width="156" height="66" rx="12" fill="#1A1011" stroke="#4A2226" stroke-width="1.5"/>
+          <text x="1034" y="88" text-anchor="middle" font-size="12.5" font-weight="800" fill="#E14B3C">/compact 이후</text>
+          <text x="1034" y="108" text-anchor="middle" font-size="10.5" fill="#C08078">자동 재주입 안 됨</text>
+        </g>
+        <text x="562" y="176" text-anchor="middle" font-size="11.5" fill="#77777F" font-family="inherit">매 도구 호출마다 평가되는 게 아니라 — Claude가 매칭되는 파일을 <tspan font-weight="800" fill="#FF8A57">읽을 때</tspan> 트리거된다</text>
+      </svg>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="gcard warn" style="padding:16px 20px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">🔄</span><h3>압축 후에는 다시 걸려야 한다</h3></div>
+        <p style="font-size:13.2px">프로젝트 루트 CLAUDE.md는 <code>/compact</code> 후 <b style="color:#D9D9DE">디스크에서 다시 읽혀 재주입</b>된다. 하지만 <b>중첩 CLAUDE.md와 <code>paths:</code> 규칙은 재주입되지 않는다</b> — 그 폴더나 매칭 파일을 <b>다시 읽어야</b> 돌아온다.</p>
+      </div>
+      <div class="gcard" style="padding:16px 20px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">🕵️</span><h3>"지시가 사라졌다" 싶을 때</h3></div>
+        <p style="font-size:13.2px">셋 중 하나다 — <b>대화로만 준 지시</b>였거나, <b>아직 안 읽은 하위 폴더</b>의 CLAUDE.md였거나, <b style="color:#D9D9DE">매칭 파일을 아직 안 건드린 path 규칙</b>이거나.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">읽어야 <b>걸린다</b></div>
+</section>
+
+<!-- ═══════════ 16 · brace 예산 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">16</div>
+  <div class="body">
+    <div class="eyebrow">2부 ⑤ · 확장 예산</div>
+    <h1>중괄호는 <em>더하기가 아니라 곱하기</em>다</h1>
+    <div class="cols">
+      <div>
+        <div class="pp" style="margin-bottom:13px">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">중괄호 그룹은 패턴 수를 곱한다</span><span class="tag2">MATH</span></div>
+          <pre class="tight"><span class="c">// 2개로 확장</span>
+"src/*.{ts,tsx}"
+
+<span class="c">// 2 × 2 × 2 = 8개로 확장</span>
+"{a,b}/{c,d}/*.{ts,tsx}"
+
+<span class="c">// 중괄호가 없으면 예산에 안 잡힌다</span>
+"src/**/*.ts"</pre>
+        </div>
+        <div class="note"><b>규칙 하나의 <code>paths</code> 목록 전체</b>가 확장 패턴 <b style="color:#FF8A57">1,000개</b>와 <b style="color:#FF8A57">4 MiB</b>라는 하나의 예산을 나눠 쓴다.</div>
+      </div>
+      <div>
+        <div class="gcard warn" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">💣</span><h3>초과하면 <b>조용히 안 걸린다</b></h3></div>
+          <p style="font-size:13.2px">예산을 넘길 패턴은 <b style="color:#D9D9DE">확장하지 않고 그대로 사용</b>된다. 그러면 중괄호가 리터럴 문자가 되어 <b>어떤 파일과도 매칭되지 않는다</b>. 에러 없이 규칙만 조용히 죽는다.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">📌</span><h3>과거 버전에서는 더 나빴다</h3></div>
+          <p style="font-size:13.2px"><b style="color:#D9D9DE">v2.1.217 이전</b>에는 중괄호 그룹이 많은 <code>paths</code> 값이 시작 시점에 CLI를 <b>멈추거나 크래시</b>시켰다.</p>
+        </div>
+        <div class="gcard good" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">✅</span><h3>실용적인 처방</h3></div>
+          <p style="font-size:13.2px">중괄호는 <b>확장자 묶음 한 곳</b>에만 쓰고, 디렉터리 분기는 <b style="color:#D9D9DE">패턴을 여러 줄로 나열</b>해 표현한다. 목록이 길어지는 편이 곱셈 폭발보다 안전하다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">확장 폭발은 <b>에러 없이 규칙을 지운다</b></div>
+</section>
+
+<!-- ═══════════ 17 · glob 함정 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">17</div>
+  <div class="body">
+    <div class="eyebrow">2부 ⑥ · 함정</div>
+    <h1>대괄호가 들어가면 <em>말이 달라진다</em></h1>
+    <div class="lead">글롭 문법에서 <code>[</code>는 <code>[abc]</code> 같은 <b>문자 집합 표현식의 시작</b>으로 읽힌다. 폴더 이름에 대괄호를 쓰는 순간 패턴이 조용히 무력해진다.</div>
+    <div class="cols">
+      <div>
+        <div class="yn n"><div class="m">✕</div><div class="tx"><code>"photos [2024/**"</code> — 문자 집합으로 읽을 수 없는 형태다. <b>아무것도 매칭하지 않는다</b></div></div>
+        <div class="yn y"><div class="m">✓</div><div class="tx"><code>"photos \[2024/**"</code> — 역슬래시로 <b>이스케이프</b>하면 리터럴 대괄호로 매칭된다</div></div>
+        <div class="yn y" style="margin-bottom:0"><div class="m">✓</div><div class="tx">무효한 패턴이 있어도 <b>그 규칙의 다른 패턴은 정상 작동</b>한다 — 하나가 전체를 망가뜨리진 않는다</div></div>
+      </div>
+      <div>
+        <div class="gcard warn" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🕰️</span><h3>v2.1.207 이전의 심각한 부작용</h3></div>
+          <p style="font-size:13.2px">무효한 패턴 하나가 있으면, 그 규칙이 평가되는 <b style="color:#D9D9DE">모든 파일에 대해 Read 도구 자체가 실패</b>했다. 규칙이 안 걸리는 정도가 아니라 <b>파일을 못 읽었다</b>.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🧪</span><h3>규칙이 안 걸릴 때 점검 순서</h3></div>
+          <p style="font-size:13.2px"><b>①</b> <code>/context</code>로 로드 여부 확인 → <b>②</b> 매칭될 파일을 <b style="color:#D9D9DE">실제로 Read 했는지</b> 확인 → <b>③</b> 중괄호 확장 예산 점검 → <b>④</b> <code>InstructionsLoaded</code> 훅으로 로깅</p>
+        </div>
+      </div>
+    </div>
+    <div class="note">버전에 따라 동작이 달라지는 영역이다. 규칙이 이상하게 굴면 <b style="color:#C9C9CF">Claude Code 버전부터 확인</b>하는 편이 빠르다.</div>
+  </div>
+  <div class="takeaway">글롭은 <b>정규식이 아니다</b></div>
+</section>
+
+<!-- ═══════════ 18 · 사용자 vs 프로젝트 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">18</div>
+  <div class="body">
+    <div class="eyebrow">2부 ⑦ · 스코프와 공유</div>
+    <h1>내 규칙과 팀 규칙을 <em>겹쳐 쓴다</em></h1>
+    <div class="cols">
+      <div>
+        <div class="mode m1" style="margin-bottom:12px">
+          <div class="mh"><h3><code>~/.claude/rules/</code></h3><span class="tg">사용자</span></div>
+          <p>내 모든 프로젝트에 적용된다. <b>프로젝트에 종속되지 않는 개인 취향</b>을 둔다 — 선호하는 워크플로, 개인 코딩 습관. <b style="color:#D9D9DE">프로젝트 규칙보다 먼저 로드</b>되므로, 충돌 시 프로젝트 쪽이 더 가깝게 읽힌다.</p>
+        </div>
+        <div class="mode m2">
+          <div class="mh"><h3><code>.claude/rules/</code></h3><span class="tg">프로젝트</span></div>
+          <p>저장소에 커밋되어 <b>팀 전체가 공유</b>한다. 팀 규약·아키텍처 결정·보안 요구사항이 여기 속한다.</p>
+        </div>
+      </div>
+      <div>
+        <div class="pp" style="margin-bottom:13px">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">심볼릭 링크로 여러 저장소가 규칙을 공유</span><span class="tag2">SHELL</span></div>
+          <pre class="tight"><span class="c"># 폴더 통째로 연결</span>
+ln -s ~/shared-claude-rules .claude/rules/shared
+
+<span class="c"># 파일 하나만 연결</span>
+ln -s ~/company-standards/security.md \
+      .claude/rules/security.md</pre>
+        </div>
+        <div class="gcard good" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🔁</span><h3>순환 링크도 안전하다</h3></div>
+          <p style="font-size:13.2px">심볼릭 링크는 정상적으로 풀려서 로드되고, <b style="color:#D9D9DE">순환 참조는 감지되어 우아하게 처리</b>된다. 회사 표준 규칙 저장소를 만들어 여러 프로젝트에 링크하는 방식이 실제로 동작한다.</p>
+        </div>
+      </div>
+    </div>
+    <div class="note">개인 스코프(<code>~/.claude/</code>)의 import와 규칙은 <b>내가 쓴 파일</b>로 간주되어 승인 대화상자 없이 로드된다. 반면 프로젝트 파일이 바깥을 가리키면 <b style="color:#FF8A57">남이 커밋했을 수 있으므로</b> 한 번 물어본다.</div>
+  </div>
+  <div class="takeaway">개인 규칙은 <b>배경</b>, 팀 규칙은 <b>전경</b></div>
+</section>
+
+<!-- ═══════════ 19 · 2단 분할 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">19</div>
+  <div class="body">
+    <div class="eyebrow">3부 ① · 분산 원칙</div>
+    <h1>루트는 <em>지도</em>, 폴더는 <em>규약</em></h1>
+    <div class="lead">공식 문서가 권하는 기본형은 <b>2단 분할</b>이다. 루트 파일은 저장소 전체에 통하는 것만 담고, 각 영역의 구체적 규약은 그 코드 옆에 둔다.</div>
+    <div class="cols">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">CLAUDE.md — 루트는 방향을 알려 준다</span><span class="tag2">ROOT</span></div>
+        <pre class="tight">packages/ 아래 세 패키지로 구성된 모노레포다.
+
+- packages/api:    Express · TypeScript · PostgreSQL
+- packages/web:    React · Vite · TailwindCSS
+- packages/shared: 양쪽이 쓰는 TypeScript 유틸
+
+명령은 모노레포 루트가 아니라
+<b>각 패키지 디렉터리에서</b> 실행한다.
+패키지마다 tsconfig.json · package.json ·
+테스트 스위트를 따로 갖는다.</pre>
+      </div>
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">packages/api/CLAUDE.md — 폴더는 규약을 담는다</span><span class="tag2">PACKAGE</span></div>
+        <pre class="tight">이 패키지는 REST API 서버다.
+
+- 테스트:      npm test (Vitest)
+- 개발 서버:   npm run dev (포트 3001)
+- DB 마이그레이션: npm run migrate
+- 환경변수:    .env.example 을 .env 로 복사
+
+라우트는 src/routes/ 에 있고 각 파일은
+Express 라우터를 export 한다.
+DB 질의는 src/db/ 에서 Knex 를 쓴다.
+<b>라우트 핸들러에 생 SQL 문자열을 쓰지 않는다.</b></pre>
+      </div>
+    </div>
+    <div class="note">루트에는 <b>"어디에 무엇이 있는지"</b>, 폴더에는 <b>"여기서는 이렇게 한다"</b>를 쓴다. <code>packages/api/</code>에서 세션을 열면 이 둘이 함께 로드되고, <b style="color:#C9C9CF"><code>packages/web/</code>의 지시는 컨텍스트에 들어오지 않는다</b>.</div>
+  </div>
+  <div class="takeaway">규약은 <b>코드 옆에</b> 두고 버전 관리한다</div>
+</section>
+
+<!-- ═══════════ 20 · 모노레포 레이아웃 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">20</div>
+  <div class="body">
+    <div class="eyebrow">3부 ② · 레이아웃</div>
+    <h1>모노레포가 아니어도 <em>같은 모양</em>이다</h1>
+    <div class="cols-64">
+      <div class="tree">monorepo/
+├── <b>CLAUDE.md</b>                       <i># 저장소 전역 규약</i>
+├── .claude/
+│   ├── <u>settings.json</u>               <i># 워크트리 세션용 deny</i>
+│   └── rules/
+│       └── <u>migrations.md</u>           <i># paths: **/migrations/**</i>
+└── packages/
+    ├── api/
+    │   ├── <b>CLAUDE.md</b>                <i># API 규약</i>
+    │   └── .claude/
+    │       ├── <u>settings.json</u>        <i># 이 영역 전용 설정</i>
+    │       └── skills/api-testing/<u>SKILL.md</u>
+    ├── web/
+    │   ├── <b>CLAUDE.md</b>                <i># 프런트 규약</i>
+    │   └── .claude/skills/component-patterns/
+    └── shared/
+        └── <b>CLAUDE.md</b>                <i># 공용 라이브러리 규약</i></div>
+      <div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🏢</span><h3>단일 트리에도 그대로 적용된다</h3></div>
+          <p style="font-size:13.2px">모노레포가 아니라면 <code>packages/api/</code> 자리에 <b style="color:#D9D9DE"><code>src/backend/</code>·<code>lib/core/</code>·<code>src/db/</code></b> 같은 서브시스템 디렉터리를 넣으면 된다. 구조는 동일하다.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">👤</span><h3>소유자를 명확히 한다</h3></div>
+          <p style="font-size:13.2px">각 디렉터리의 CLAUDE.md는 <b>그 디렉터리 소유 팀이 관리</b>한다. 저장소에 커밋해 팀원이 물려받게 하고, <b style="color:#D9D9DE">PR에서 문서 변경처럼 리뷰</b>한다.</p>
+        </div>
+        <div class="gcard good" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🧹</span><h3>모델이 바뀌면 다시 본다</h3></div>
+          <p style="font-size:13.2px">구형 모델의 한계를 우회하려고 넣은 지시는 <b style="color:#D9D9DE">새 모델에서는 순수한 부담</b>이 된다. Stop 훅으로 세션 트랜스크립트를 검토해 <b>갱신안을 제안</b>하게 만들 수도 있다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">폴더 경계가 곧 <b>컨텍스트 경계</b>다</div>
+</section>
+
+<!-- ═══════════ 21 · claudeMdExcludes ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">21</div>
+  <div class="body">
+    <div class="eyebrow">3부 ③ · 제외</div>
+    <h1>영영 안 볼 폴더는 <em>아예 끈다</em></h1>
+    <div class="cols">
+      <div>
+        <div class="pp" style="margin-bottom:13px">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">.claude/settings.local.json</span><span class="tag2">JSON</span></div>
+          <pre class="tight">{
+  <span class="k">"claudeMdExcludes"</span>: [
+    <span class="s">"**/packages/web/**"</span>
+  ]
+}</pre>
+        </div>
+        <table class="tbl tight">
+          <colgroup><col style="width:52%"><col style="width:48%"></colgroup>
+          <thead><tr><th>패턴</th><th>효과</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">**/packages/*/CLAUDE.md</td><td class="mut">패키지 것만 빼고 루트는 유지</td></tr>
+            <tr><td class="mono">**/packages/legacy-*/**</td><td class="mut">이름이 맞는 패키지 전부(규칙 포함)</td></tr>
+            <tr><td class="mono">/home/me/repo/x/CLAUDE.md</td><td class="mut">절대 경로로 파일 하나만</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="gcard warn" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">📐</span><h3><b>절대 경로</b>에 매칭된다</h3></div>
+          <p style="font-size:13.2px">패턴은 절대 경로를 대상으로 평가되므로, 상대 경로처럼 쓰려면 <b style="color:#D9D9DE"><code>**/</code>로 시작</b>해야 트리 어디서든 걸린다.</p>
+        </div>
+        <div class="gcard warn" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🔒</span><h3>정적 목록이지 스위치가 아니다</h3></div>
+          <p style="font-size:13.2px">"오늘은 API, 내일은 web"처럼 <b>매일 바꿀 용도가 아니다</b>. 그럴 땐 설정을 고치지 말고 <b style="color:#D9D9DE">그 패키지 디렉터리에서 세션을 시작</b>하라는 것이 공식 권고다.</p>
+        </div>
+        <div class="gcard" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🧩</span><h3>스코프를 넘어 <b>병합</b>된다</h3></div>
+          <p style="font-size:13.2px">사용자·프로젝트·로컬·관리 정책 어디든 설정할 수 있고 배열은 합쳐진다 — 팀이 기본값을 깔고 개인이 더 얹는 식이 가능하다. 단 <b style="color:#FF8A57">관리 정책 CLAUDE.md는 제외할 수 없다</b>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">안 쓰는 팀의 규약은 <b>순수한 손해</b>다</div>
+</section>
+
+<!-- ═══════════ 22 · 폴더별 스킬 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">22</div>
+  <div class="body">
+    <div class="eyebrow">3부 ④ · 폴더별 스킬</div>
+    <h1>절차는 규약이 아니라 <em>스킬로</em> 내린다</h1>
+    <div class="cols">
+      <div class="pp">
+        <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">packages/api/.claude/skills/api-testing/SKILL.md</span><span class="tag2">SKILL</span></div>
+        <pre class="tight"><b>---
+name: api-testing
+description: API 패키지의 테스트 패턴.
+  packages/api/ 에서 테스트를 작성하거나
+  수정할 때 사용.
+---</b>
+
+<span class="c">## 테스트 구조</span>
+테스트는 src/__tests__/ 에 src/ 구조를 그대로
+미러링해서 둔다.
+
+<span class="c">## 실행</span>
+- 전체: npm test
+- 단일 파일: npm test -- src/__tests__/…
+
+<span class="c">## 패턴</span>
+- HTTP 단언은 supertest 사용, 생 fetch 금지
+- DB 테스트는 롤백되는 트랜잭션으로 감싼다</pre>
+      </div>
+      <div>
+        <div class="gcard" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">📍</span><h3>배치로도, 패턴으로도 스코프된다</h3></div>
+          <p style="font-size:13.2px">디렉터리 안 <code>.claude/skills/</code>에 두거나, 루트에 두고 <b style="color:#D9D9DE"><code>paths</code> 프런트매터</b>로 <code>**/migrations/**</code>처럼 파일 패턴에 걸 수 있다.</p>
+        </div>
+        <div class="gcard warn" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">✂️</span><h3>설명은 <b>잘린다</b></h3></div>
+          <p style="font-size:13.2px">이름은 항상 로드되지만 <b>스킬이 많아지면 설명이 축약</b>되어, 판단 근거가 되는 키워드가 날아갈 수 있다. 설명은 짧게 쓰고 <b style="color:#D9D9DE">요청에 실제로 등장할 단어를 앞에</b> 둔다.</p>
+        </div>
+        <div class="gcard warn" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">📈</span><h3>루트에서 시작하면 수백 개가 된다</h3></div>
+          <p style="font-size:13.2px">루트 세션은 <b style="color:#D9D9DE">건드리는 모든 하위 디렉터리의 스킬이 누적</b>된다. 여러 폴더가 공유할 스킬은 루트 <code>.claude/skills/</code>에 모으고, 저장소를 넘나들 것은 <b>플러그인</b>으로 묶는다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">항상 필요하지 않다면 <b>스킬이 맞다</b></div>
+</section>
+
+<!-- ═══════════ 23 · 선택 기준 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">23</div>
+  <div class="body">
+    <div class="eyebrow">3부 ⑤ · 결정표</div>
+    <h1>그래서 <em>어디에 쓸 것인가</em></h1>
+    <table class="tbl tight" style="margin-bottom:16px">
+      <colgroup><col style="width:19%"><col style="width:22%"><col style="width:26%"><col style="width:33%"></colgroup>
+      <thead><tr><th>방식</th><th>파일 위치</th><th>로드 시점</th><th>이럴 때 고른다</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>폴더별<br>CLAUDE.md</b></td>
+          <td class="mut">그 디렉터리 안,<br>코드 옆</td>
+          <td class="mut">그 폴더에서 시작하면 <b>즉시</b>,<br>루트에서 시작하면 <b>읽을 때</b></td>
+          <td class="mut">디렉터리 소유 팀이 <b>자기 규약을 직접 관리</b>하고, 지시가 코드와 함께 버전 관리되길 원할 때</td>
+        </tr>
+        <tr>
+          <td><b>paths 규칙</b><br><span class="mut" style="font-size:12px">.claude/rules/</span></td>
+          <td class="mut">저장소 루트의<br>중앙 <code>.claude/</code></td>
+          <td class="mut">글롭에 <b>맞는 파일을 다룰 때</b></td>
+          <td class="mut">모든 규약을 <b>한곳에서 보고 싶거나</b>, 같은 규칙이 <b>여기저기 흩어진 경로</b>에 동일하게 적용될 때</td>
+        </tr>
+        <tr>
+          <td><b>스킬</b><br><span class="mut" style="font-size:12px">.claude/skills/</span></td>
+          <td class="mut">디렉터리 안 또는<br>루트</td>
+          <td class="mut">Claude가 <b>관련 있다고 판단</b>하거나 직접 호출할 때</td>
+          <td class="mut"><b>여러 단계짜리 절차</b>이거나 분량이 큰 참조 자료라, 항상 컨텍스트에 있을 필요가 없을 때</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="grid2">
+      <div class="gcard good" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">🧭</span><h3>한 문장 판별법</h3></div>
+        <p style="font-size:13.1px"><b>"이 지시가 필요한 순간을 무엇으로 특정할 수 있는가?"</b> — <b style="color:#D9D9DE">폴더</b>면 폴더별 CLAUDE.md, <b style="color:#D9D9DE">파일 패턴</b>이면 paths 규칙, <b style="color:#D9D9DE">작업의 종류</b>면 스킬.</p>
+      </div>
+      <div class="gcard" style="padding:15px 19px">
+        <div class="gh" style="margin-bottom:6px"><span class="em">🤝</span><h3>배타적이지 않다</h3></div>
+        <p style="font-size:13.1px">셋은 <b>겹쳐서 쓰는 층</b>이다. 실제 저장소는 루트 CLAUDE.md + 폴더별 CLAUDE.md + 흩어진 경로용 paths 규칙 + 폴더별 스킬을 <b style="color:#D9D9DE">동시에</b> 갖는다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">기준은 <b>"무엇으로 그 순간을 특정하는가"</b></div>
+</section>
+
+<!-- ═══════════ 24 · 읽는 양 줄이기 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">24</div>
+  <div class="body">
+    <div class="eyebrow">4부 ① · 파일 읽기</div>
+    <h1>지시만이 아니라 <em>파일 읽기도</em> 비용이다</h1>
+    <div class="cols">
+      <div>
+        <div class="pp" style="margin-bottom:13px">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">.claude/settings.json — 읽기 자체를 막는다</span><span class="tag2">DENY</span></div>
+          <pre class="tight">{
+  <span class="k">"permissions"</span>: {
+    <span class="k">"deny"</span>: [
+      <span class="s">"Read(./**/dist/**)"</span>,
+      <span class="s">"Read(./**/build/**)"</span>,
+      <span class="s">"Read(./**/*.generated.*)"</span>,
+      <span class="s">"Read(./vendor/**)"</span>
+    ]
+  }
+}</pre>
+        </div>
+        <div class="note"><code>.gitignore</code>에 있는 경로는 <b>검색에서 이미 자동 제외</b>된다. deny 규칙이 필요한 대상은 <b style="color:#C9C9CF">저장소에 체크인된</b> 벤더 SDK와 생성 코드다.</div>
+      </div>
+      <div>
+        <div class="gcard warn" style="padding:16px 20px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🚧</span><h3>deny가 미치는 범위</h3></div>
+          <p style="font-size:13.2px">내장 파일 도구와 <code>cat</code>·<code>head</code>·<code>grep</code>·<code>find</code> 같은 <b>인식된 Bash 명령의 인자</b>를 막는다. 다만 <b style="color:#D9D9DE">재귀 검색 결과에서 걸러 주지는 않고</b>, 스스로 파일을 여는 임의의 서브프로세스도 막지 못한다.</p>
+        </div>
+        <div class="gcard good" style="padding:16px 20px">
+          <div class="gh" style="margin-bottom:7px"><span class="em">🧠</span><h3>코드 인텔리전스로 탐색을 대체한다</h3></div>
+          <p style="font-size:13.2px">심볼 정의와 호출부를 찾느라 파일을 훑는 대신 <b>언어 서버에 물어본다</b>.</p>
+          <div class="meta" style="margin:10px 0 0">/plugin install typescript-lsp@claude-plugins-official</div>
+          <p style="font-size:13.2px;margin-top:9px">TypeScript·Python·Go·Rust 등이 공식 마켓플레이스에 있다. 각 개발자 머신에 <b style="color:#D9D9DE">해당 언어 서버 바이너리</b>가 필요하다.</p>
+        </div>
+      </div>
+    </div>
+    <div class="note">제외 설정이 <b>안 읽을 것을 정하고</b>, 코드 인텔리전스가 <b style="color:#C9C9CF">남은 것을 뒤지지 않게</b> 한다 — 둘은 짝으로 쓸 때 효과가 크다.</div>
+  </div>
+  <div class="takeaway">컨텍스트를 먹는 건 <b>지시보다 파일</b>이다</div>
+</section>
+
+<!-- ═══════════ 25 · 워크트리와 접근 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">25</div>
+  <div class="body">
+    <div class="eyebrow">4부 ② · 디스크와 접근 범위</div>
+    <h1>체크아웃도 <em>필요한 폴더만</em></h1>
+    <div class="cols">
+      <div>
+        <div class="pp">
+          <div class="ph"><svg class="ic"><use href="#spark"/></svg><span class="t">.claude/settings.json — 희소 체크아웃</span><span class="tag2">WORKTREE</span></div>
+          <pre class="tight">{
+  <span class="k">"worktree"</span>: {
+    <span class="k">"sparsePaths"</span>: [
+      <span class="s">".claude"</span>,
+      <span class="s">"packages/api"</span>,
+      <span class="s">"packages/shared"</span>
+    ],
+    <span class="k">"symlinkDirectories"</span>: [<span class="s">"node_modules"</span>]
+  }
+}</pre>
+        </div>
+        <div class="yn n" style="margin-top:13px"><div class="m">!</div><div class="tx">루트 레벨 <b>파일</b>은 항상 체크아웃되지만 루트 레벨 <b>디렉터리</b>는 아니다 — <code>.claude</code>를 <b>직접 적어야</b> 워크트리 안에서 규칙과 스킬을 쓸 수 있다</div></div>
+        <div class="yn y" style="margin-bottom:0"><div class="m">✓</div><div class="tx">경로는 <b>저장소 루트 기준</b>이며 디렉터리만 나열한다. 세션의 모든 워크트리가 같은 목록을 공유하므로 <b>서브에이전트가 쓸 경로도 함께</b> 적는다</div></div>
+      </div>
+      <div>
+        <table class="tbl tight" style="margin-bottom:14px">
+          <colgroup><col style="width:40%"><col style="width:34%"><col style="width:26%"></colgroup>
+          <thead><tr><th>추가 방식</th><th>CLAUDE.md·규칙</th><th>스킬</th></tr></thead>
+          <tbody>
+            <tr><td class="mono" style="font-size:12px">additionalDirectories</td><td class="mut"><b style="color:#E14B3C">절대 안 됨</b></td><td class="mut"><b style="color:#E14B3C">안 됨</b></td></tr>
+            <tr><td class="mono" style="font-size:12px">--add-dir · /add-dir</td><td class="mut">환경변수 있을 때만</td><td class="mut"><b style="color:#3ACB82">로드됨</b></td></tr>
+          </tbody>
+        </table>
+        <div class="gcard" style="padding:15px 19px;margin-bottom:11px">
+          <div class="gh" style="margin-bottom:6px"><span class="em">🔑</span><h3>지시까지 가져오려면</h3></div>
+          <div class="meta" style="margin:0 0 8px">CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1</div>
+          <p style="font-size:13.1px">이 변수를 켜야 <code>--add-dir</code>로 붙인 디렉터리의 CLAUDE.md·<code>.claude/rules/</code>가 로드된다. <b style="color:#D9D9DE"><code>additionalDirectories</code> 설정에는 이 변수가 아무 효과가 없다</b>.</p>
+        </div>
+        <div class="gcard" style="padding:15px 19px">
+          <div class="gh" style="margin-bottom:6px"><span class="em">📂</span><h3>파일 접근과 지시 로딩은 별개다</h3></div>
+          <p style="font-size:13.1px">읽고 쓸 수 있다는 것과 그 폴더의 규약이 로드된다는 것은 <b>다른 문제</b>다. 형제 패키지를 고치는데 그쪽 규약이 안 들어오는 상황이 여기서 생긴다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">접근 권한과 <b>지시 로딩은 다른 스위치</b>다</div>
+</section>
+
+<!-- ═══════════ 26 · compact 생존 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">26</div>
+  <div class="body">
+    <div class="eyebrow">4부 ③ · 압축 이후</div>
+    <h1>긴 세션에서 <em>살아남는 것</em>과 아닌 것</h1>
+    <table class="tbl" style="margin-bottom:18px">
+      <colgroup><col style="width:33%"><col style="width:20%"><col style="width:47%"></colgroup>
+      <thead><tr><th>대상</th><th>/compact 이후</th><th>어떻게 돌아오나</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>프로젝트 루트 CLAUDE.md</b></td>
+          <td style="color:#3ACB82;font-weight:800">살아남는다</td>
+          <td class="mut">디스크에서 다시 읽어 <b>세션에 재주입</b>된다</td>
+        </tr>
+        <tr>
+          <td><b>하위 폴더 CLAUDE.md</b></td>
+          <td style="color:#E14B3C;font-weight:800">사라진다</td>
+          <td class="mut">그 디렉터리의 파일을 <b>다시 읽을 때</b> 재로드</td>
+        </tr>
+        <tr>
+          <td><b><code>paths:</code> 규칙</b></td>
+          <td style="color:#E14B3C;font-weight:800">사라진다</td>
+          <td class="mut">패턴에 맞는 파일을 <b>다시 다룰 때</b> 재로드</td>
+        </tr>
+        <tr>
+          <td><b>대화로만 준 지시</b></td>
+          <td style="color:#E14B3C;font-weight:800">사라진다</td>
+          <td class="mut">돌아오지 않는다 — <b>파일에 적어야</b> 지속된다</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="grid2">
+      <div class="gcard warn" style="padding:16px 20px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">🧭</span><h3>분산 설계의 유일한 대가</h3></div>
+        <p style="font-size:13.2px">온디맨드 로딩은 컨텍스트를 아껴 주는 대신 <b style="color:#D9D9DE">압축을 견디지 못한다</b>. 긴 세션에서 "아까는 지키더니 지금은 안 지킨다"의 정체가 대개 이것이다.</p>
+      </div>
+      <div class="gcard good" style="padding:16px 20px">
+        <div class="gh" style="margin-bottom:7px"><span class="em">📄</span><h3>패키지를 넘나드는 작업이라면</h3></div>
+        <p style="font-size:13.2px">계획을 먼저 세우고 <b>저장소 안 마크다운 파일로 저장</b>한다. 긴 세션은 도중에 압축되지만 <b style="color:#D9D9DE">파일로 남긴 계획은 살아남는다</b>. 공유 타입을 고치고 모든 호출부를 따라가는 작업은 <b>한 세션에 통째로</b> 넘기는 편이 결정의 일관성이 높다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">가벼움과 <b>지속성은 맞바꾸는 것</b>이다</div>
+</section>
+
+<!-- ═══════════ 27 · 전체 조립 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">27</div>
+  <div class="body">
+    <div class="eyebrow">4부 ④ · 조립</div>
+    <h1>전부 켜면 <em>이렇게 동작한다</em></h1>
+    <div class="lead"><code>packages/api/</code>에서 세션을 시작했을 때 실제로 벌어지는 일이다.</div>
+    <div class="cols-46">
+      <div class="tree">monorepo/
+├── <b>CLAUDE.md</b>
+├── .claude/
+│   ├── <u>settings.json</u>      <i>← 워크트리용 deny</i>
+│   └── rules/<u>migrations.md</u>
+└── packages/
+    ├── api/
+    │   ├── <b>CLAUDE.md</b>
+    │   └── .claude/
+    │       ├── <u>settings.json</u>
+    │       └── skills/…
+    ├── web/  <s>CLAUDE.md</s>   <i>← 범위 밖</i>
+    └── shared/ <b>CLAUDE.md</b></div>
+      <div>
+        <div class="yn y"><div class="m">✓</div><div class="tx">루트 <b>CLAUDE.md</b>와 <b>packages/api/CLAUDE.md</b>가 로드되고, <code>packages/web/</code>의 지시는 <b>들어오지 않는다</b></div></div>
+        <div class="yn y"><div class="m">✓</div><div class="tx"><code>packages/api/</code>와 <code>packages/shared/</code>의 파일을 읽고 고칠 수 있다</div></div>
+        <div class="yn y"><div class="m">✓</div><div class="tx"><code>dist/</code>·<code>build/</code> 하위 파일 읽기는 <b>차단</b>된다</div></div>
+        <div class="yn y"><div class="m">✓</div><div class="tx"><b>api-testing 스킬</b>이 필요할 때만 본문을 펼친다</div></div>
+        <div class="yn y"><div class="m">✓</div><div class="tx">마이그레이션 파일을 건드리는 순간 <b>migrations 규칙</b>이 합류한다</div></div>
+        <div class="yn y" style="margin-bottom:0"><div class="m">✓</div><div class="tx">워크트리에는 <code>.claude/</code>·두 패키지·루트 파일만 체크아웃된다</div></div>
+      </div>
+    </div>
+    <div class="note"><b style="color:#FF8A57">놓치기 쉬운 지점</b> — 워크트리 안에서는 작업 디렉터리가 <b>워크트리 루트</b>가 되므로 <code>packages/api/.claude/settings.json</code>이 로드되지 않는다. 워크트리 세션에도 적용해야 할 deny 규칙과 훅은 <b style="color:#C9C9CF">저장소 루트의 settings.json에 한 벌 더</b> 두어야 한다.</div>
+  </div>
+  <div class="takeaway">층을 쌓되 <b>각 층을 자기 완결적으로</b></div>
+</section>
+
+<!-- ═══════════ 28 · 안티패턴 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">28</div>
+  <div class="body">
+    <div class="eyebrow">점검표 · ANTI-PATTERNS</div>
+    <h1>지금 내 설정에서 <em>여덟 줄만 확인하자</em></h1>
+    <div class="cols">
+      <div>
+        <div class="yn n"><div class="m">1</div><div class="tx">규칙 파일을 쪼개 놓고 <b><code>paths:</code>를 안 붙이지 않았나</b> — 폴더만 나눈 것은 조건부가 아니다</div></div>
+        <div class="yn n"><div class="m">2</div><div class="tx"><b><code>@import</code>로 나눠 놓고 가벼워졌다고 믿지 않았나</b> — 토큰은 그대로다</div></div>
+        <div class="yn n"><div class="m">3</div><div class="tx">한 파일이 <b>200줄을 넘지 않았나</b> — 넘으면 준수율부터 떨어진다</div></div>
+        <div class="yn n" style="margin-bottom:0"><div class="m">4</div><div class="tx">코드베이스에서 <b>유추 가능한 내용</b>(디렉터리 구조·의존성 목록)을 적어 두지 않았나</div></div>
+      </div>
+      <div>
+        <div class="yn n"><div class="m">5</div><div class="tx">반드시 막아야 할 것을 <b>CLAUDE.md 문장으로만</b> 적어 두지 않았나 — 훅이나 deny로 걸어야 한다</div></div>
+        <div class="yn n"><div class="m">6</div><div class="tx">계층 간 <b>모순된 지시</b>를 방치하지 않았나 — Claude가 임의로 하나를 고른다</div></div>
+        <div class="yn n"><div class="m">7</div><div class="tx">중괄호를 여러 겹 써서 <b>확장 예산을 넘기지</b> 않았나 — 에러 없이 규칙이 죽는다</div></div>
+        <div class="yn n" style="margin-bottom:0"><div class="m">8</div><div class="tx">매일 바꿀 범위를 <b><code>claudeMdExcludes</code>로</b> 관리하지 않았나 — 시작 디렉터리를 바꾸는 게 맞다</div></div>
+      </div>
+    </div>
+    <div class="sum" style="margin-top:18px">
+      <div class="n">RULE</div>
+      <div class="k"><em>기본형</em></div>
+      <div class="d">루트는 <b style="color:#D9D9DE">지도만</b> · 영역 규약은 <b style="color:#D9D9DE">코드 옆 CLAUDE.md</b> · 흩어진 경로는 <b style="color:#D9D9DE">paths 규칙</b> · 절차는 <b style="color:#D9D9DE">스킬</b> · 강제는 <b style="color:#D9D9DE">훅</b></div>
+    </div>
+  </div>
+  <div class="takeaway">잘 쪼갠 설정은 <b>세션마다 가벼워진다</b></div>
+</section>
+
+<!-- ═══════════ 29 · 실습 ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="pagenum">29</div>
+  <div class="body">
+    <div class="eyebrow">실습 · MISSION</div>
+    <h1>지금 <em>45분</em>이면 다 해본다</h1>
+    <div class="cards">
+      <div class="card"><div class="chip b">1</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>내 세션의 실태 재기</h3><span class="time">10분</span></div>
+        <p><code>/context</code>를 실행해 <b style="color:#D9D9DE">Memory files</b> 목록을 확인하고, 거기 뜬 파일들의 줄 수를 세어 본다. <b style="color:#D9D9DE">지금 하는 작업과 무관한 지시가 몇 줄인지</b>가 이 강의의 출발점이다.</p>
+      </div></div>
+      <div class="card"><div class="chip g">2</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>규칙 하나를 조건부로 바꾸기</h3><span class="time">15분</span></div>
+        <p>가장 긴 규칙 파일 하나를 골라 맨 위에 <code>paths:</code> 프런트매터를 붙인다. 세션을 재시작하고 <code>/context</code>로 <b style="color:#D9D9DE">사라졌는지</b> 확인한 뒤, 매칭되는 파일을 하나 읽고 <b>다시 나타나는지</b> 본다.</p>
+      </div></div>
+      <div class="card"><div class="chip o">3</div><div style="flex:1">
+        <div style="display:flex;align-items:center;gap:12px"><h3>폴더별로 내려 보내기</h3><span class="time">20분</span></div>
+        <p>루트 CLAUDE.md에서 <b style="color:#D9D9DE">한 영역에만 해당하는 문단</b>을 골라 그 폴더의 <code>CLAUDE.md</code>로 옮긴다. 루트에서 세션을 열었을 때와 <b style="color:#D9D9DE">그 폴더에서 열었을 때</b> <code>/context</code> 결과가 어떻게 달라지는지 비교한다.</p>
+      </div></div>
+    </div>
+    <div class="note">여유가 있다면 <code>InstructionsLoaded</code> 훅을 붙여 <b>언제 무엇이 왜 로드되는지</b> 로그로 남겨 보자 — 규칙이 안 걸리는 이유를 눈으로 확인할 수 있는 유일한 방법이다.</div>
+  </div>
+  <div class="takeaway">직접 재봐야 <b>어디가 새는지 보인다</b></div>
+</section>
+
+<!-- ═══════════ 30 · OUTRO ═══════════ -->
+<section class="slide">
+  <header class="bar">
+    <div class="brand"><svg class="logo" style="color:var(--orange)"><use href="#spark"/></svg><b>클로드 코드 완벽 마스터</b></div>
+    <div class="tag">#ContextEngineering</div>
+  </header>
+  <div class="outro">
+    <div class="eb">WRAP-UP</div>
+    <h1>지시를 쓰는 일에서<br><em>지시가 읽히는 시점을</em> 설계하는 일로</h1>
+    <div class="d">무엇을 적을지만큼 중요한 것은 그것이 언제 컨텍스트에 들어오느냐다<br><b style="color:#D8D8DC">항상 읽히는 지시는 그만큼의 값어치를 매 세션 증명해야 한다</b></div>
+    <div class="avatar"><svg style="width:52px;height:52px;color:var(--orange)"><use href="#spark"/></svg></div>
+    <div class="cta">Q&amp;A · 질문 환영</div>
+    <div class="promo">
+      <div class="th">SERIES<br>LINK</div>
+      <div>
+        <div class="pt">함께 보면 좋은 강의 · 컨텍스트 윈도 편 · 스킬과 플러그인 편</div>
+        <div class="pd">이 강의가 다룬 세 등급의 나머지 한 축을 깊게 다룹니다 <span class="hot">계속</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /stage -->
+
+<div class="hud">
+  <span class="cnt" id="cnt">01 / 30</span>
+  <button id="prev" aria-label="이전 슬라이드">‹</button>
+  <button id="next" aria-label="다음 슬라이드">›</button>
+  <button id="fs" aria-label="전체화면 (F)" style="display:grid;place-items:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="display:block"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+<div class="hint"><b>← →</b> 슬라이드 이동 &nbsp;·&nbsp; <b>F</b> 전체화면 &nbsp;·&nbsp; <b>Ctrl+P</b> PDF 저장</div>
+<div class="progress" id="prog"></div>
+</div><!-- /deck -->
+
+<script>
+(function(){
+  var stage=document.getElementById('stage');
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var cnt=document.getElementById('cnt');
+  var prog=document.getElementById('prog');
+  var cur=0, N=slides.length;
+
+  function pad(n){return String(n).padStart(2,'0');}
+  function go(n){
+    n=Math.max(0,Math.min(N-1,n));
+    if(n===cur && slides[n].classList.contains('active')){update();return;}
+    slides[cur].classList.remove('active');
+    cur=n;
+    slides[cur].classList.add('active');
+    update();
+  }
+  function update(){
+    cnt.textContent=pad(cur+1)+' / '+pad(N);
+    prog.style.width=(N>1?(cur/(N-1))*100:100)+'%';
+    try{if(history.replaceState){history.replaceState(null,'','#'+(cur+1));}}catch(e){/* 샌드박스(미리보기)에서는 URL 갱신 불가 — 무시 */}
+  }
+  function next(){go(cur+1);}
+  function prev(){go(cur-1);}
+
+  function fit(){
+    var s=Math.min(window.innerWidth/1280, window.innerHeight/720);
+    stage.style.transform='translate(-50%,-50%) scale('+s+')';
+  }
+  window.addEventListener('resize',fit);
+  fit();
+
+  // ── 안전장치: 폰트 대체·번역 등으로 내용이 넘치면 본문만 살짝 축소 ──
+  function fitBodies(){
+    for(var i=0;i<N;i++){
+      var b=slides[i].querySelector('.body');
+      if(!b) continue;
+      b.style.transform='none';
+      var kids=b.children;
+      if(!kids.length) continue;
+      var last=kids[kids.length-1];
+      var need=last.offsetTop+last.offsetHeight-b.offsetTop;
+      var avail=b.clientHeight;
+      if(need>avail+1){
+        var k=Math.max(.72, avail/need);
+        b.style.transformOrigin='top center';
+        b.style.transform='scale('+k+')';
+      }
+    }
+  }
+  window.addEventListener('resize',fitBodies);
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fitBodies);}
+  setTimeout(fitBodies,60);
+  fitBodies();
+
+  document.getElementById('next').addEventListener('click',next);
+  document.getElementById('prev').addEventListener('click',prev);
+
+  var toastEl=null,toastT=null;
+  function toast(msg){
+    if(!toastEl){toastEl=document.createElement('div');toastEl.className='toast';document.body.appendChild(toastEl);}
+    toastEl.textContent=msg;
+    toastEl.classList.add('on');
+    clearTimeout(toastT);
+    toastT=setTimeout(function(){toastEl.classList.remove('on');},3000);
+  }
+  function fsBlocked(){toast('이 미리보기 창에서는 전체화면이 차단돼 있어요 — 파일을 다운로드해 브라우저에서 열면 사용할 수 있습니다');}
+  function toggleFs(){
+    var d=document,el=d.documentElement;
+    var inFs=d.fullscreenElement||d.webkitFullscreenElement;
+    try{
+      if(inFs){(d.exitFullscreen||d.webkitExitFullscreen).call(d);return;}
+      var req=el.requestFullscreen||el.webkitRequestFullscreen;
+      if(!req){fsBlocked();return;}
+      var p=req.call(el);
+      if(p&&p.catch){p.catch(fsBlocked);}
+    }catch(err){fsBlocked();}
+  }
+  document.getElementById('fs').addEventListener('click',toggleFs);
+
+  window.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'||e.key===' '){e.preventDefault();next();}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();prev();}
+    else if(e.key==='Home'){e.preventDefault();go(0);}
+    else if(e.key==='End'){e.preventDefault();go(N-1);}
+    else if(e.key==='f'||e.key==='F'){toggleFs();}
+  });
+
+  var tx=null;
+  window.addEventListener('touchstart',function(e){tx=e.changedTouches[0].clientX;},{passive:true});
+  window.addEventListener('touchend',function(e){
+    if(tx===null)return;
+    var dx=e.changedTouches[0].clientX-tx;
+    if(dx<-50)next(); else if(dx>50)prev();
+    tx=null;
+  },{passive:true});
+
+  var h=parseInt((location.hash||'').replace('#',''),10);
+  if(!isNaN(h)&&h>=1&&h<=N){slides[0].classList.remove('active');cur=h-1;slides[cur].classList.add('active');}
+  update();
+})();
+</script>
+</body>
+</html>
